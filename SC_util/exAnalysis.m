@@ -1,6 +1,6 @@
 %%
 normTraces = bsxfun(@rdivide,cellDeconv,mean(cellDeconv,2));
-[bD,tI] = binAlignNeurons(normTraces,syncObj);
+[bD,tI,vD] = binAlignNeurons(normTraces,syncObj);
 [maxVal,maxInd] = max(mean(bD,3),[],2);
 [~,pkSrt] = sort(maxInd,'ascend');
 

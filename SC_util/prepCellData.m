@@ -1,8 +1,8 @@
 %% Load Data
-D(1) = load('patchResults_slice01_v0810.mat', 'A','C');
-D(2) = load('patchResults_slice02_v0810.mat', 'A','C');
-D(3) = load('patchResults_slice03_v0810.mat', 'A','C');
-D(4) = load('patchResults_slice04_v0810.mat', 'A','C');
+D(1) = load('patchResults_slice01_v0820.mat', 'A','C');
+D(2) = load('patchResults_slice02_v0820.mat', 'A','C');
+D(3) = load('patchResults_slice03_v0820.mat', 'A','C');
+D(4) = load('patchResults_slice04_v0820.mat', 'A','C');
 
 As = []; Cs = [];
 for nSlice=1:4
@@ -24,9 +24,9 @@ sourceProps = clusterSourceTypes(As);
 clear D
 %% Cluster Cell Sources
 % cIdx = sourceProps.gmProbs(:,sourceProps.pID)>0.1;
-cIdx = sourceProps.gmProbs(:,2)>0.5;
+cIdx = sourceProps.gmProbs(:,1)>0.1;
 cellFilts = full(As(:,cIdx));
-figure,imshow(reshape(sum(cellFilts,2),512,512)*3),
+imshow(reshape(sum(cellFilts,2),512,512)*3),
 %% Detrend and Deconvolve Traces, save output
 acqBlocks = syncObj.sliceFrames(:,end);
 cellCalcium = Cs(cIdx,:);
@@ -58,4 +58,5 @@ for nBlock = 1:length(acqBlocks)
         parfor_progress(0);
 end
 
-save('cellData_0811','cellDeconv','syncObj','cellDenoised','cellFilts')
+save('cellData_0820','cellDeconv',...
+    'syncObj','cellDenoised','cellFilts','cellG','cellNoise')
