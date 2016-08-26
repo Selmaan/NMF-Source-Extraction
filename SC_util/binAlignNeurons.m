@@ -2,12 +2,12 @@ function [binData,trialInfo, vrData] = binAlignNeurons(neurData, syncObj)
 
 %% Binning Parameters
 % For now these are set to default values
-posBins = linspace(5,205,31); %Edges for 30 spatial bins
-posBins(1)=0;
+% nPosBins = 30;
+% posBins = linspace(5,205,nPosBins+1); %Edges for 30 spatial bins
+% posBins(1)=0;
 preTrialShifts = -3:-1;
 postTrialShifts = 0:23;
 
-trialInfo.posBins = posBins;
 trialInfo.preTrialShifts = preTrialShifts;
 trialInfo.postTrialShifts = postTrialShifts;
 %% Create trial info structure
@@ -26,7 +26,21 @@ trialInfo.cTrials = find(syncObj.tReward(trialInfo.validTrials) == 1); %Correct 
 trialInfo.iTrials = find(syncObj.tReward(trialInfo.validTrials) == 0); %Incorrect Trials
 
 %%
+trialDurs = (syncObj.vermOnsets(syncObj.trialChoices)-syncObj.vermOnsets(syncObj.trialStarts))/1e3;
+nPosBins = round(median(trialDurs)*5);
 load(syncObj.vrFile),
+positionIterations = sessionData([6,11],sessionData(8,:)==0);
+
+posPrctiles = nan(nTrials,nPosBins+1);
+for nTrial = 1:nTrials
+    posPrctiles(nTrial,:) = prctile(positionIterations(1,positionIterations(2,:)==nTrial),...
+        linspace(0,100,nPosBins+1));
+end
+
+posBins = median(posPrctiles);
+posBins(1) = 0;
+trialInfo.posBins = posBins;
+
 
 %%
 vT = trialInfo.validTrials;
@@ -45,7 +59,13 @@ for iTrial = 1:length(vT)
     
     for posBin = 1:length(posBins)-1
         binInd = find(trialData(6,:)>posBins(posBin) & trialData(6,:)<= posBins(posBin+1));
+        if isempty(binInd)
+            binInd = find(trialData(6,:)>posBins(posBin),1,'first');
+        end
         posVR(:,posBin,iTrial) = mean(sessionData(:,binInd + trialOffset),2);
+%         posVR(10,posBin,iTrial) = sum(sessionData(10,binInd + trialOffset),2);
+        posVR(10,posBin,iTrial) = syncObj.vermOnsets(binInd(end)+trialOffset+1) ...
+            - syncObj.vermOnsets(binInd(1) + trialOffset);
         frameInds = ceil(syncObj.verm2frame(binInd + trialOffset)/5);
         posData(:,posBin,iTrial) = mean(neurData(:,frameInds),2);
     end
@@ -57,6 +77,7 @@ for iTrial = 1:length(vT)
         vermInd = syncObj.frame2verm(frameShifted*5)+(-1:1);
         vermInd(vermInd<1) = 1;
         preVR(:,preBin,iTrial) = mean(sessionData(:,vermInd),2);
+        preVR(10,preBin,iTrial) = syncObj.frameOnsets(5*(frameShifted+1))-syncObj.frameOnsets(5*frameShifted);
     end
     
 %     preData(:,:,iTrial) = neurData(:,preTrialShifts+ceil(syncObj.verm2frame(syncObj.trialStarts(nTrial))/5));
@@ -67,6 +88,7 @@ for iTrial = 1:length(vT)
         vermInd = syncObj.frame2verm(frameShifted*5)+(-1:1);
         vermInd(vermInd>size(sessionData,2)) = size(sessionData,2);
         postVR(:,postBin,iTrial) = mean(sessionData(:,vermInd),2);
+        postVR(10,postBin,iTrial) = syncObj.frameOnsets(5*(frameShifted+1))-syncObj.frameOnsets(5*frameShifted);
     end
 
 % postData(:,:,iTrial) = neurData(:,postTrialShifts+ceil(syncObj.verm2frame(syncObj.trialChoices(nTrial))/5));
