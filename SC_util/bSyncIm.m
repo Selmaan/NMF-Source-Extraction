@@ -28,7 +28,7 @@ syncObj.vrFile = vrFile;
 frameTrig = diff(wvData(:,4)>8e3);
 frameOnsets = find(frameTrig==1);
 % focus blocks between acquisitions give a pair of long inter-frame-intervals
-focusBlocks = reshape(find(diff(frameOnsets)>1e3),[],2);
+focusBlocks = reshape(find(diff(frameOnsets)>1e3),2,[])';
 nBlocks = size(focusBlocks,1) + 1;
 % For each imaging block, remove the frame after first entry in pair
 % through till the second entry in pair from valid frame counter
@@ -68,7 +68,7 @@ validFrameCount = validFrameCount*(nSlices+1);
 % This loop starts from the beginning of each acquisition block and gets
 % rid of extra frame ticks that do not correspond to logged data, or that
 % correspond to additional frames dropped for slice alignment purposes
-blockFrameOffsets = [0, find(diff(frameOnsets)>1e3)];
+blockFrameOffsets = [0; find(diff(frameOnsets)>1e3)];
 validFrameInd = [];
 for i=1:length(blockFrameOffsets)
     validFrameInd = [validFrameInd,...
@@ -112,9 +112,12 @@ syncObj.vermMidTimes = vermMidTimes;
 syncObj.verm2frame = interp1(1:length(frameTrig),cumsum(frameTrig==1),vermMidTimes,'nearest');
 syncObj.frame2verm = interp1(1:length(vermTrig),cumsum(vermTrig==1),frameMidTimes,'nearest');
 
-if ~isempty(syncObj.lastBlockFrames)
-    syncObj.verm2frame(syncObj.verm2frame == syncObj.lastBlockFrames) = nan; %Iterations lost during focus/alignment blocks
+for i=1:length(syncObj.lastBlockFrames)
+    syncObj.verm2frame(syncObj.verm2frame == syncObj.lastBlockFrames(i)) = nan; %Iterations lost during focus/alignment blocks
 end
+% if ~isempty(syncObj.lastBlockFrames)
+%     syncObj.verm2frame(syncObj.verm2frame == syncObj.lastBlockFrames) = nan; %Iterations lost during focus/alignment blocks
+% end
 %%
 
 nTrials = max(sessionData(end,:));
