@@ -3,6 +3,7 @@ normTraces = bsxfun(@rdivide,cellDeconv,mean(cellDeconv,2));
 [bD,tI,vD] = binAlignNeurons(normTraces,syncObj);
 [maxVal,maxInd] = max(mean(bD,3),[],2);
 [~,pkSrt] = sort(maxInd,'ascend');
+figure,plot(squeeze(median(vD(10,:,:),3)))
 
 if mod(tI.worldVec(1),4) == 1 | mod(tI.worldVec(1),4) == 2
     switchPoints(1) = find(abs(mod(tI.worldVec,4)-1.5)>1,1,'first');
@@ -14,7 +15,8 @@ end
 
 X=zeros(length(tI.validTrials),7)-1/2;
 X(tI.wTrials,1) = 1/2;
-X(tI.rTrials,2) = 1/2;
+% X(tI.rTrials,2) = 1/2; %use 'correct' choice
+X(squeeze(vD(5,40,:))>0,2) = 1/2; %use actual choice
 X(tI.cTrials,3) = 1/2;
 X(tI.kTrials,4) = 1/2;
 X(switchPoints(1):switchPoints(2),5) = 1/2;
@@ -28,6 +30,28 @@ for nNeuron = 1:size(bD,1)
         bMat(nNeuron,ind,:) = regress(squeeze(bD(nNeuron,ind,:)),X);
     end
 end
+
+figure,hold on
+for i=1:5
+plot(mean(abs(bMat(:,:,i)))./mean(abs(bMat(:,:,6))))
+end
+axis tight
+ay = ylim;
+line((length(tI.preTrialShifts)+1)*[1 1], [ay(1) ay(2)],'color','k'),
+line((length(tI.preTrialShifts)+find(tI.posBins>150,1))*[1 1],...
+    [ay(1) ay(2)],'color','k','linestyle','--'),
+line((length(tI.preTrialShifts)+length(tI.posBins)+1)*[1 1],...
+    [ay(1) ay(2)],'color','k'),
+figure,plot(mean(abs(bMat(:,:,6))))
+
+fNorm = sum(f)./mean(sum(f,1),2);
+fD = binAlignNeurons(fNorm,syncObj);
+fMat = nan(size(bD,2),size(X,2));
+for ind = 1:size(bD,2)
+    fMat(ind,:) = regress(squeeze(fD(1,ind,:)),X);
+end
+figure,plot(fMat(:,1:5)./std(fMat(:,6))),
+figure,plot(fMat(:,6)),
 
 %% Trial Modulation Analysis
 normTraces = bsxfun(@rdivide,cellDeconv,mean(cellDeconv,2));
