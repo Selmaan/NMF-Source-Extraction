@@ -20,13 +20,14 @@ for nSlice=1:4
     Cs = [Cs; thisC];
 end
 
-sourceProps = clusterSourceTypes(As);
+% sourceProps = clusterSourceTypes(As);
+sourceClusterGUI(As);
 clear D
 %% Cluster Cell Sources
 % cIdx = sourceProps.gmProbs(:,sourceProps.pID)>0.1;
-cIdx = sourceProps.gmProbs(:,1)>0.1;
-cellFilts = full(As(:,cIdx));
-imshow(reshape(sum(cellFilts,2),512,512)*3),
+cIdx = guiClusterIDs;
+cellFilts = As(:,cIdx);
+imshow(reshape(full(sum(cellFilts,2)),512,512)*3),
 %% Detrend and Deconvolve Traces, save output
 acqBlocks = syncObj.sliceFrames(:,end);
 cellCalcium = Cs(cIdx,:);
@@ -35,7 +36,7 @@ cellDeconv = nan(size(cellCalcium));
 cellBaseline = nan(size(cellCalcium,1),length(acqBlocks));
 cellG = nan(size(cellCalcium,1),length(acqBlocks));
 cellNoise = nan(size(cellCalcium,1),length(acqBlocks));
-
+parfor_progress(size(cellCalcium,1)*length(acqBlocks));
 for nBlock = 1:length(acqBlocks)
         if nBlock > 1
             inds = acqBlocks(nBlock-1):acqBlocks(nBlock);
@@ -43,7 +44,6 @@ for nBlock = 1:length(acqBlocks)
             inds = 1:acqBlocks(nBlock);
         end
         
-        parfor_progress(size(cellCalcium,1));
         parfor nCell = 1:size(cellCalcium,1)
             thisTrace = removeSourceBaseline(cellCalcium(nCell,inds));
             cellCalcium(nCell,inds) = thisTrace;
@@ -55,8 +55,8 @@ for nBlock = 1:length(acqBlocks)
             cellNoise(nCell,nBlock) = sn;
             parfor_progress;
         end
-        parfor_progress(0);
 end
+parfor_progress(0);
 
 save('cellData_0820','cellDeconv',...
     'syncObj','cellDenoised','cellFilts','cellG','cellNoise')

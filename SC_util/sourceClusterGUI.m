@@ -22,7 +22,7 @@ function varargout = sourceClusterGUI(varargin)
 
 % Edit the above text to modify the response to help sourceClusterGUI
 
-% Last Modified by GUIDE v2.5 22-Aug-2016 19:27:52
+% Last Modified by GUIDE v2.5 22-Aug-2016 22:44:32
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,7 +57,6 @@ handles.output = hObject;
 
 handles.cellFilters = varargin{1};
 handles.sO = clusterSourceTypes(handles.cellFilters,4);
-
 % Update handles structure
 guidata(hObject, handles);
 
@@ -84,6 +83,17 @@ function slider1_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+sliderSet = get(hObject,'Value');
+sliderMod = sigmf([-.01 0] + sliderSet,[10 1/2]);
+handles.filtIDs = find(handles.theseProbs >= sliderMod(2));
+theseFilts = handles.cellFilters(:,handles.filtIDs);
+minusFilts = handles.cellFilters(:,handles.theseProbs >= sliderMod(1));
+adjIm = repmat(reshape(full(sum(theseFilts,2)),512,512),1,1,3);
+adjIm(:,:,2) = reshape(full(sum(minusFilts,2)),512,512);
+imshow(adjIm*3,'Parent',handles.axes1),
+title(handles.axes1,...
+    sprintf('%d Filters Selected at Prob: %0.4f',length(handles.filtIDs),sliderMod(2))),
+guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -106,7 +116,12 @@ function popupmenu1_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popupmenu1
-
+gID = get(hObject,'Value');
+handles.theseProbs = handles.sO.gmProbs(:,handles.sO.sigRank(gID));
+handles.filtIDs = find(handles.sO.idx == handles.sO.sigRank(gID));
+theseFilts = handles.cellFilters(:,handles.filtIDs);
+imshow(reshape(full(sum(theseFilts,2)),512,512)*3,'Parent',handles.axes1),
+guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function popupmenu1_CreateFcn(hObject, eventdata, handles)
@@ -119,3 +134,11 @@ function popupmenu1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in pushbutton1.
+function pushbutton1_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+assignin('base','guiClusterIDs',handles.filtIDs);
