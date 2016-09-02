@@ -37,11 +37,13 @@ plot(mean(abs(bMat(:,:,i)))./mean(abs(bMat(:,:,6))))
 end
 axis tight
 ay = ylim;
-line((length(tI.preTrialShifts)+1)*[1 1], [ay(1) ay(2)],'color','k'),
+line((length(tI.preTrialShifts))*[1 1], [ay(1) ay(2)],'color','k'),
 line((length(tI.preTrialShifts)+find(tI.posBins>150,1))*[1 1],...
     [ay(1) ay(2)],'color','k','linestyle','--'),
-line((length(tI.preTrialShifts)+length(tI.posBins)+1)*[1 1],...
+line((length(tI.preTrialShifts)+length(tI.posBins))*[1 1],...
     [ay(1) ay(2)],'color','k'),
+line((length(tI.preTrialShifts)+length(tI.posBins)+12)*[1 1],...
+    [ay(1) ay(2)],'color','k','linestyle','--'),
 figure,plot(mean(abs(bMat(:,:,6))))
 
 fNorm = sum(f)./mean(sum(f,1),2);

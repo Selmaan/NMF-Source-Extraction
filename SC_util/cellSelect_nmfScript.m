@@ -1,4 +1,9 @@
-cd(FOV1.defaultDir);
+Acquisition2P([],@SClk);
+cd(FOV1.defaultDir)
+motionCorrect(FOV1)
+parfor i=1:4
+    memmap_acq(FOV1,i);
+end
 syncObj = bSyncIm(FOV1);
 
 %% Select Slice and run Patches
