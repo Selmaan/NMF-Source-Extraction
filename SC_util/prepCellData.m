@@ -39,7 +39,7 @@ cellNoise = nan(size(cellCalcium,1),length(acqBlocks));
 parfor_progress(size(cellCalcium,1)*length(acqBlocks));
 for nBlock = 1:length(acqBlocks)
         if nBlock > 1
-            inds = acqBlocks(nBlock-1):acqBlocks(nBlock);
+            inds = 1+acqBlocks(nBlock-1):acqBlocks(nBlock);
         else
             inds = 1:acqBlocks(nBlock);
         end
@@ -58,5 +58,5 @@ for nBlock = 1:length(acqBlocks)
 end
 parfor_progress(0);
 
-save('cellData_0820','cellDeconv',...
+save('cellData_0820','cellDeconv','cellCalcium',...
     'syncObj','cellDenoised','cellFilts','cellG','cellNoise')
