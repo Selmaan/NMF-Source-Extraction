@@ -42,9 +42,9 @@ function [c,b,c1,g,sn,sp] = constrained_foopsi(y,b,c1,g,sn,options)
 defoptions.p = 1;
 defoptions.method = 'cvx';
 defoptions.bas_nonneg = 1;              % nonnegativity option for baseline estimation
-defoptions.noise_range = [0.25,0.5];    % frequency range over which to estimate the noise
+defoptions.noise_range = [0.33,0.5];    % frequency range over which to estimate the noise
 defoptions.noise_method = 'logmexp';    % method for which to estimate the noise level
-defoptions.lags = 5;                    % number of extra lags when computing the AR coefficients
+defoptions.lags = 100;                    % number of extra lags when computing the AR coefficients
 defoptions.resparse = 0;                % number of times to re-sparse solution
 defoptions.fudge_factor = .98;            % fudge factor for time constants
 
