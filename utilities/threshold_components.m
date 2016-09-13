@@ -11,7 +11,7 @@ function Ath = threshold_components(A,options)
 % Eftychios A. Pnevmatikakis, Simons Foundation, 2015
 
     defoptions.nrgthr = 0.9999;              % energy threshold
-    defoptions.clos_op = strel('square',3);  % morphological operator for closing
+    defoptions.clos_op = strel('disk',2,0);  % morphological operator for closing
     defoptions.medw = [1,1];                 % size of median filter
     
     if ~isfield(options,'nrgthr') || isempty(options.nrgthr); options.nrgthr = defoptions.nrgthr; end
