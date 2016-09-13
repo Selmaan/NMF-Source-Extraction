@@ -69,7 +69,9 @@ for nBlock = 1:nBlocks
     end
 end
 % Convert from slice to unrolled volume acquisition frame number
-validFrameCount = validFrameCount*(nSlices+1);
+if nSlices > 1
+    validFrameCount = validFrameCount*(nSlices+1);
+end
 
 % This loop starts from the beginning of each acquisition block and gets
 % rid of extra frame ticks that do not correspond to logged data, or that
@@ -89,7 +91,13 @@ frameTrig(frameOnsets) = 1;
 IFI = diff(frameOnsets);
 IFI(lastBlockFrames) = [];
 fprintf('Frame Intervals: min %03d, max %03d\n',min(IFI),max(IFI)),
-fprintf('%02d Imaging Blocks and %d Complete Volumes Detected\n',nBlocks,length(frameOnsets)/(nSlices+1)),
+if nSlices > 1
+    fprintf('%02d Imaging Blocks and %d Complete Volumes Detected\n',nBlocks,length(frameOnsets)/(nSlices+1)),
+elseif nSlices == 1
+    fprintf('%02d Imaging Blocks and %d Logged Frames Detected\n',nBlocks,length(frameOnsets)),    
+else
+    error('Unable to Detect Imaging Mode'),
+end
 frameMidTimes = frameOnsets + round(mean(IFI)/2);
 
 syncObj.sliceFrames = sliceFrames;
