@@ -13,22 +13,24 @@ else
     switchPoints(2) = find(abs(mod(tI.worldVec,4)-1.5)<1,1,'last');
 end
 
-X=zeros(length(tI.validTrials),7)-1/2;
-X(tI.wTrials,1) = 1/2;
+X=zeros(length(tI.validTrials),7)-1;
+X(tI.wTrials,1) = 1;
 % X(tI.rTrials,2) = 1/2; %use 'correct' choice
-X(squeeze(vD(5,40,:))>0,2) = 1/2; %use actual choice
-X(tI.cTrials,3) = 1/2;
-X(tI.kTrials,4) = 1/2;
-X(switchPoints(1):switchPoints(2),5) = 1/2;
+X(tI.rChoice,2) = 1; %use actual choice
+X(tI.cTrials,3) = 1;
+X(tI.kTrials,4) = 1;
+X(switchPoints(1):switchPoints(2),5) = 1;
 X(:,6) = 1;
 X(:,7) = linspace(-1,1,length(tI.validTrials));
 
+invX = pinv(X);
 bMat = nan(size(bD,1),size(bD,2),size(X,2));
 for nNeuron = 1:size(bD,1)
-    nNeuron,
-    parfor ind = 1:size(bD,2)
-        bMat(nNeuron,ind,:) = regress(squeeze(bD(nNeuron,ind,:)),X);
-    end
+    neurCoefs = (invX*squeeze(bD(nNeuron,:,:))')';
+    bMat(nNeuron,:,:) = neurCoefs;
+%     parfor ind = 1:size(bD,2)
+%         bMat(nNeuron,ind,:) = regress(squeeze(bD(nNeuron,ind,:)),X);
+%     end
 end
 
 figure,hold on
@@ -40,10 +42,12 @@ ay = ylim;
 line((length(tI.preTrialShifts))*[1 1], [ay(1) ay(2)],'color','k'),
 line((length(tI.preTrialShifts)+find(tI.posBins>150,1))*[1 1],...
     [ay(1) ay(2)],'color','k','linestyle','--'),
-line((length(tI.preTrialShifts)+length(tI.posBins))*[1 1],...
+line((length(tI.preTrialShifts)+length(tI.posBins-1))*[1 1],...
     [ay(1) ay(2)],'color','k'),
-line((length(tI.preTrialShifts)+length(tI.posBins)+12)*[1 1],...
+line((length(tI.preTrialShifts)+length(tI.posBins-1)+12)*[1 1],...
     [ay(1) ay(2)],'color','k','linestyle','--'),
+line((length(tI.preTrialShifts)+find(tI.posBins>90,1))*[1 1],...
+    [ay(1) ay(2)],'color','g','linestyle','--'),
 figure,plot(mean(abs(bMat(:,:,6))))
 
 fNorm = sum(f)./mean(sum(f,1),2);

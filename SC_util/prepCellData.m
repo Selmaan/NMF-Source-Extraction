@@ -21,7 +21,7 @@ for nSlice=1:4
 end
 
 % sourceProps = clusterSourceTypes(As);
-sourceClusterGUI(As);
+sourceClusterGUI(As,3);
 clear D
 %% Cluster Cell Sources
 % cIdx = sourceProps.gmProbs(:,sourceProps.pID)>0.1;
@@ -58,5 +58,5 @@ for nBlock = 1:length(acqBlocks)
 end
 parfor_progress(0);
 
-save('cellData_0820','cellDeconv','cellCalcium',...
+save('cellData_0902','cellDeconv','cellCalcium',...
     'syncObj','cellDenoised','cellFilts','cellG','cellNoise')

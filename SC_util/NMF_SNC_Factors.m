@@ -16,7 +16,7 @@ its = 0;
 converged = 0;
 convThresh = 1e-6;
 maxIts = 2e2;
-wBaseline = 25;
+wBaseline = 10;
 while ~converged && its<maxIts
     its = its+1;
     wSym0 = wSym;
@@ -30,7 +30,7 @@ end
 t = pinv(w)*Yvec;
 its = 0;
 converged = 0;
-convThresh = 1e-4;
+convThresh = 2e-5;
 maxIts = 1e2;
 wBaseline = 10;
 while ~converged && its<maxIts
@@ -43,8 +43,8 @@ end
 %% Sparsify Factors
 its = 0;
 converged = 0;
-convThresh = 1e-5;
-maxIts = 1e3;
+convThresh = 2e-6;
+maxIts = 250;
 wBaseline = 80;
 while ~converged && its<maxIts
     its = its+1;

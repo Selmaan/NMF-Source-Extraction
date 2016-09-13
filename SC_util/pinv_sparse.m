@@ -15,7 +15,7 @@ function X = pinv_sparse(A,tol)
  
 %   Copyright 1984-2013 The MathWorks, Inc. 
 
-[U,S,V] = svds(A,size(A,2));
+[U,S,V] = svds(A,min(size(A,1),size(A,2)));
 s = diag(S);
 if nargin < 2 
     tol = max(size(A)) * eps(norm(s,inf));

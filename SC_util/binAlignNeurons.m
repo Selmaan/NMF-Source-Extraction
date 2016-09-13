@@ -20,14 +20,14 @@ trialInfo.wTrials = find(mod(trialInfo.worldVec,2)==1); %white cue
 trialInfo.bTrials = find(mod(trialInfo.worldVec,2)==0); %black cue
 trialInfo.kTrials = find(trialInfo.worldVec<5);         %checker trial
 trialInfo.nTrials = find(trialInfo.worldVec>=5);        %no checker trial
-trialInfo.rTrials = find(mod(trialInfo.worldVec,4)<2);  %left chamber
-trialInfo.lTrials = find(mod(trialInfo.worldVec,4)>=2); %right chamber
+trialInfo.lTrials = find(mod(trialInfo.worldVec,4)<2);  %left chamber
+trialInfo.rTrials = find(mod(trialInfo.worldVec,4)>=2); %right chamber
 trialInfo.cTrials = find(syncObj.tReward(trialInfo.validTrials) == 1); %Correct Trials
 trialInfo.iTrials = find(syncObj.tReward(trialInfo.validTrials) == 0); %Incorrect Trials
 
 %%
 trialDurs = (syncObj.vermOnsets(syncObj.trialChoices)-syncObj.vermOnsets(syncObj.trialStarts))/1e3;
-nPosBins = round(median(trialDurs)*5);
+nPosBins = round(median(trialDurs)*6);
 load(syncObj.vrFile),
 positionIterations = sessionData([6,11],sessionData(8,:)==0);
 
@@ -40,7 +40,6 @@ end
 posBins = median(posPrctiles);
 posBins(1) = 0;
 trialInfo.posBins = posBins;
-
 
 %%
 vT = trialInfo.validTrials;
@@ -96,3 +95,8 @@ end
 
 binData = cat(2,preData,posData,postData);
 vrData = cat(2,preVR,posVR,postVR);    
+
+%%
+choiceBin = length(trialInfo.preTrialShifts)+length(trialInfo.posBins)+3;
+trialInfo.rChoice = find(squeeze(vrData(5,choiceBin,:))<0);
+trialInfo.lChoice = find(squeeze(vrData(5,choiceBin,:))>0);

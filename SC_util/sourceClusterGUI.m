@@ -56,7 +56,12 @@ function sourceClusterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 handles.cellFilters = varargin{1};
-handles.sO = clusterSourceTypes(handles.cellFilters,4);
+if length(varargin) > 1
+    nClusters = varargin{2};
+else
+    nClusters = 4;
+end
+handles.sO = clusterSourceTypes(handles.cellFilters,nClusters);
 % Update handles structure
 guidata(hObject, handles);
 

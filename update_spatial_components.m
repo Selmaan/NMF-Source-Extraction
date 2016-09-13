@@ -1,4 +1,4 @@
-function [A,b,C] = update_spatial_components(Y,C,f,A_,P,options)
+function [A,b,C] = update_spatial_components(binFile,C,f,A_,P,options)
 
 % update spatial footprints and background through Basis Pursuit Denoising
 % for each pixel i solve the problem 
@@ -24,78 +24,35 @@ function [A,b,C] = update_spatial_components(Y,C,f,A_,P,options)
 % Eftychios A. Pnevmatikakis, Simons Foundation, 2015
 
 warning('off', 'MATLAB:maxNumCompThreads:Deprecated');
-memmaped = isobject(Y);
-if memmaped
-    sizY = Y.sizY;
-    d = prod(sizY(1:end-1));
-    T = sizY(end);
-else
-    [d,T] = size(Y);
-end
+imSize = [options.d1,options.d2];
+d = prod(imSize);
+T = size(C,2);
+K = size(C,1);
+
 if nargin < 6 || isempty(options); options = []; end
-if ~isfield(options,'d1') || isempty(options.d1); d1 = input('What is the total number of rows? \n'); options.d1 = d1; else d1 = options.d1; end          % # of rows
-if ~isfield(options,'d2') || isempty(options.d2); d2 = input('What is the total number of columns? \n'); options.d2 = d2; else d2 = options.d2; end          % # of columns
-if ~isfield(options,'show_sum'); show_sum = 0; else show_sum = options.show_sum; end            % do some plotting while calculating footprints
-if ~isfield(options,'interp'); Y_interp = sparse(d,T); else Y_interp = options.interp; end      % identify missing data
 if ~isfield(options,'use_parallel'); use_parallel = ~isempty(which('parpool')); else use_parallel = options.use_parallel; end % use parallel toolbox if present
 if ~isfield(options,'search_method'); method = []; else method = options.search_method; end     % search method for determining footprint of spatial components
-
-if nargin < 2 || (isempty(A_) && isempty(C))  % at least either spatial or temporal components should be provided
-    error('Not enough input arguments')
-else
-    if ~isempty(C); K = size(C,1); elseif islogical(A_); K = size(A_,2); else K = size(A_2,2) - options.nb; end
-end
-
-if nargin < 5 || isempty(P); P = preprocess_data(Y,1); end  % etsimate noise values if not present
-if nargin < 4 || isempty(A_); 
-    IND = ones(d,size(C,1)); 
-else
-    if islogical(A_)     % check if search locations have been provided, otherwise estimate them
-        IND = A_;
-        if isempty(C)    
-            INDav = double(IND)/diag(sum(double(IND)));          
-            px = (sum(IND,2)>0);
-            f = mean(Y(~px,:));
-            b = max(Y*f',0)/norm(f)^2;
-            C = max(INDav'*Y - (INDav'*b)*f,0);
-        end
-    else
-        IND = determine_search_location(A_(:,1:K),method,options);
-    end
-end
-
 options.sn = P.sn;
-if ~memmaped
-    Y(P.mis_entries) = NaN; % remove interpolated values
-end
+
+IND = determine_search_location(A_(:,1:K),method,options);
 
 Cf = [C;f];
-
 if use_parallel         % solve BPDN problem for each pixel
-    Nthr = max(20*maxNumCompThreads,round(d*T/2^24));
-    Nthr = min(Nthr,round(d/1e3));
+%     Nthr = max(20*maxNumCompThreads,round(d*T/2^24));
+%     Nthr = min(Nthr,round(d/1e3));
+    Nthr = 510;
     siz_row = [floor(d/Nthr)*ones(Nthr-mod(d,Nthr),1);(floor(d/Nthr)+1)*ones(mod(d,Nthr),1)];
     indeces = [0;cumsum(siz_row)];
-%     if ~memmaped
-%         Ycell = mat2cell(Y,siz_row,T);
-%     else
-%         Ycell = cell(Nthr,1);
-%     end
-%    INDc =  mat2cell(IND,siz_row,K);
-%    Acell = cell(Nthr,1);
-%    Psnc = mat2cell(options.sn(:),siz_row,1); 
     Yf = cell(Nthr,1);
     A = spalloc(d,size(Cf,1),nnz(IND)+size(Cf,1)*d);
     for nthr = 1:Nthr
-        %IND_temp = INDc{nthr};
-        %Acell{nthr} = spalloc(siz_row(nthr),size(Cf,1),nnz(IND_temp));        
-        if memmaped
-            Ytemp = double(Y.Yr(indeces(nthr)+1:indeces(nthr+1),:));
-        else
-            %Ytemp = Ycell{nthr};
-            Ytemp = Y(indeces(nthr)+1:indeces(nthr+1),:);
-            %Ycell{nthr} = [];
-        end
+        dMap = memmapfile(binFile,'Format', {'int16', [T, d], 'mov'});
+        mov = dMap.data.mov;
+        [matRow, matCol] = ind2sub(imSize, indeces(nthr)+1:indeces(nthr+1));
+        binPixInd = sub2ind([imSize(2), imSize(1)], matCol, matRow);
+        Ytemp = double(mov(:, binPixInd))';
+        clear mov
+        clear dMap
         IND_temp = IND(indeces(nthr)+1:indeces(nthr+1),:);
         Atemp = spalloc(siz_row(nthr),size(Cf,1),nnz(IND_temp));
         Yf{nthr} = Ytemp*f'; 
@@ -114,10 +71,9 @@ if use_parallel         % solve BPDN problem for each pixel
                 Atemp(px,:) = a_sparse';
             end
         end
-        if mod(nthr,50) == 0
+        if mod(nthr,30) == 0
             fprintf('%2.1f%% of pixels completed \n', indeces(nthr+1)*100/d);
         end
-        %Acell{nthr} = Atemp;
         A(indeces(nthr)+1:indeces(nthr+1),:) = Atemp;
     end
     %A = cell2mat(Acell);
