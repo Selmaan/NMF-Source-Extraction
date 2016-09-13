@@ -25,6 +25,9 @@ for frameBatch = 1:size(frameBatches,2)
         'Format', {'int16', [nFrames, prod(imSize)], 'mov'});
     mov = dMap.data.mov;
     tempY = double(mov(fInd,:)');
+    tempY = reshape(tempY,imSize(2),imSize(1),length(fInd));
+    tempY = permute(tempY,[2 1 3]);
+    tempY = reshape(tempY,prod(imSize),length(fInd));
     clear mov
     clear dMap
 %     traces{frameBatch} = pA * tempY;
