@@ -35,6 +35,7 @@ if ~isfield(options,'search_method'); method = []; else method = options.search_
 options.sn = P.sn;
 
 IND = determine_search_location(A_(:,1:K),method,options);
+IND = sparse(IND);
 
 Cf = [C;f];
 if use_parallel         % solve BPDN problem for each pixel
@@ -44,7 +45,7 @@ if use_parallel         % solve BPDN problem for each pixel
     siz_row = [floor(d/Nthr)*ones(Nthr-mod(d,Nthr),1);(floor(d/Nthr)+1)*ones(mod(d,Nthr),1)];
     indeces = [0;cumsum(siz_row)];
     Yf = cell(Nthr,1);
-    A = spalloc(d,size(Cf,1),nnz(IND)+size(Cf,1)*d);
+    A = spalloc(d,size(Cf,1),nnz(IND)+size(f,1)*d);
     for nthr = 1:Nthr
         dMap = memmapfile(binFile,'Format', {'int16', [T, d], 'mov'});
         mov = dMap.data.mov;
