@@ -1,8 +1,8 @@
 %% Load Data
-D(1) = load('patchResults_slice01_v0820.mat', 'A','C');
-D(2) = load('patchResults_slice02_v0820.mat', 'A','C');
-D(3) = load('patchResults_slice03_v0820.mat', 'A','C');
-D(4) = load('patchResults_slice04_v0820.mat', 'A','C');
+D(1) = load('Slice01_patchResults_v0912.mat', 'A','C');
+D(2) = load('Slice02_patchResults_v0912.mat', 'A','C');
+D(3) = load('Slice03_patchResults_v0912.mat', 'A','C');
+D(4) = load('Slice04_patchResults_v0912.mat', 'A','C');
 
 As = []; Cs = [];
 for nSlice=1:4
@@ -21,7 +21,7 @@ for nSlice=1:4
 end
 
 % sourceProps = clusterSourceTypes(As);
-sourceClusterGUI(As,3);
+sourceClusterGUI(As,4);
 clear D
 %% Cluster Cell Sources
 % cIdx = sourceProps.gmProbs(:,sourceProps.pID)>0.1;
