@@ -29,22 +29,24 @@ for nROI = 1:nROIs
     thisCent = round(maskProps.WeightedCentroid([2,1]));
     tempMask = thisMask(thisCent(1)-winRad:thisCent(1)+winRad,...
         thisCent(2)-winRad:thisCent(2)+winRad);
-%     tempMask = medfilt2(tempMask,[3 3]);
-%     alignedMasks(:,:,nROI) = tempMask;
-    alignedMasks(:,:,nROI) = abs(fft2(tempMask));  
+    tempMask = medfilt2(tempMask,[3 3]);
+    alignedMasks(:,:,nROI) = tempMask;
+%     alignedMasks(:,:,nROI) = abs(fft2(tempMask));  
 end
 
-forInd = 1:winRad;
-backInd = 1+2*winRad:-1:winRad+2;
-alignedMasks = alignedMasks(forInd,forInd,:)+...
-    alignedMasks(forInd,backInd,:) + alignedMasks(backInd,forInd,:)...
-    + alignedMasks(backInd,backInd,:);
+% forInd = 1:winRad;
+% backInd = 1+2*winRad:-1:winRad+2;
+% alignedMasks = alignedMasks(forInd,forInd,:)+...
+%     alignedMasks(forInd,backInd,:) + alignedMasks(backInd,forInd,:)...
+%     + alignedMasks(backInd,backInd,:);
 
 %% PCA + gmm clustering
 pcaDims = 2;
-[mEig,mSco,mLat] = pca(reshape(alignedMasks,winRad^2,nROIs)');
+% [mEig,mSco,mLat] = pca(reshape(alignedMasks,winRad^2,nROIs)');
+[mEig,mSco,mLat] = pca(reshape(alignedMasks,winWidth^2,nROIs)');
+% pcaDims = find(cumsum(mLat)>.9*sum(mLat),1);
 clusterScores = mSco(:,1:pcaDims);
-% clusterScores = mdscale(pdist(reshape(alignedMasks,winWidth^2,nROIs)','correlation'),2);
+% clusterScores = mdscale(pdist(clusterScores,'euclidean'),2);
 % clusterScores = tsne(reshape(alignedMasks,31^2,nROIs)',[],pcaDims);
 gmModel = fitgmdist(clusterScores,nClusters,'Start','plus','Replicates',10);
 % [~,pID] = max(gmModel.mu(:,1));
@@ -63,6 +65,7 @@ for i=1:nClusters
 end
 
 [~,sigRank] = sort(sigVol,'ascend');
+sigRank,
 
 cIm = zeros(512,512,3);
 cIm(:,:,1) = reshape(sum(A(:,idx==sigRank(1)),2),512,512);
