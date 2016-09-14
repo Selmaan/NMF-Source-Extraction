@@ -129,9 +129,6 @@ syncObj.frame2verm = interp1(1:length(vermTrig),cumsum(vermTrig==1),frameMidTime
 for i=1:length(syncObj.lastBlockFrames)
     syncObj.verm2frame(syncObj.verm2frame == syncObj.lastBlockFrames(i)) = nan; %Iterations lost during focus/alignment blocks
 end
-% if ~isempty(syncObj.lastBlockFrames)
-%     syncObj.verm2frame(syncObj.verm2frame == syncObj.lastBlockFrames) = nan; %Iterations lost during focus/alignment blocks
-% end
 %%
 
 nTrials = max(sessionData(end,:));
