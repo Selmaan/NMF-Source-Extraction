@@ -150,8 +150,8 @@ for nAcq = 1:size(acqBlocks,1)
         cSub = removeSourceBaseline(C(nSource,acqInd));
         pilFit = robustfit(fSub,cSub,'bisquare',2);
         C(nSource,acqInd) = cSub - pilFit(1) - pilFit(2)*fSub;
-%         C(nSource,acqInd) = ...
-%             removeSourceBaseline(C(nSource,acqInd) - pilFit(1) - pilFit(2)*fSub);
+        C(nSource,acqInd) = ...
+            removeSourceBaseline(C(nSource,acqInd) - pilFit(1) - pilFit(2)*fSub);
     end
 end
 warning(warnState);
