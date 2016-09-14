@@ -4,7 +4,7 @@ motionCorrect(FOV1)
 for i=1:4
     indexMovie(FOV1,i);
 end
-FOV1.derivedData(1).syncObj = bSyncIm(FOV1);
+FOV1.syncInfo = bSyncIm(FOV1);
 fprintf('%d frames from Acq Obj \n',sum(FOV1.correctedMovies.slice(end).channel.size(:,3))),
 FOV1.save,
 
