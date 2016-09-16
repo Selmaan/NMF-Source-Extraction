@@ -12,3 +12,4 @@ FOV1.save,
 for nSlice = 1:4
     extractSourcesNMF(FOV1,nSlice);
 end
+FOV1.save
