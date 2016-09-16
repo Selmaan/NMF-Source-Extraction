@@ -1,8 +1,10 @@
 %% Load Data
-D(1) = load('Slice01_patchResults_v0912.mat', 'A','C');
-D(2) = load('Slice02_patchResults_v0912.mat', 'A','C');
-D(3) = load('Slice03_patchResults_v0912.mat', 'A','C');
-D(4) = load('Slice04_patchResults_v0912.mat', 'A','C');
+D(1) = load('Slice01_patchResults_v0913.mat', 'A','C');
+D(2) = load('Slice02_patchResults_v0913.mat', 'A','C');
+D(3) = load('Slice03_patchResults_v0913.mat', 'A','C');
+D(4) = load('Slice04_patchResults_v0913.mat', 'A','C');
+
+syncObj = FOV1.syncInfo;
 
 As = []; Cs = [];
 for nSlice=1:4
@@ -58,5 +60,5 @@ for nBlock = 1:length(acqBlocks)
 end
 parfor_progress(0);
 
-save('cellData_0902','cellDeconv','cellCalcium',...
+save('cellData_0914','cellDeconv','cellCalcium',...
     'syncObj','cellDenoised','cellFilts','cellG','cellNoise')
