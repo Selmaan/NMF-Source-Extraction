@@ -1,8 +1,9 @@
 Acquisition2P([],@SClk);
 cd(FOV1.defaultDir)
 motionCorrect(FOV1)
+writeDir = 'E:\memmaps\19-160709';
 for i=1:4
-    indexMovie(FOV1,i);
+    indexMovie(FOV1,i,1,writeDir);
 end
 FOV1.syncInfo = bSyncIm(FOV1);
 fprintf('%d frames from Acq Obj \n',sum(FOV1.correctedMovies.slice(end).channel.size(:,3))),
