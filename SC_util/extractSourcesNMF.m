@@ -200,5 +200,5 @@ fprintf(' done. \n');
 %% Save Results
 
 saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v0913',nSlice));
-acqObj.roiInfo.NMF.slice(nSlice).filename = saveFile;
+acqObj.roiInfo.slice(nSlice).NMF.filename = saveFile;
 save(saveFile,'A','b','C','f','P'),
