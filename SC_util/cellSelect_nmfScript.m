@@ -14,3 +14,10 @@ for nSlice = 1:4
     extractSourcesNMF(FOV1,nSlice);
 end
 FOV1.save
+
+%% Deconvolve and save clustered sources
+
+[dF,dF_denoised,dF_deconv,...
+    traceBs,traceGs,traceSNs,A,b,f] = deconv_NMF(FOV1);
+save('cellData_0921','dF','dF_denoised','dF_deconv',...
+    'traceBs','traceGs','traceSNs','A','b','f'),
