@@ -1,4 +1,4 @@
-function [c,b,c1,g,sn,sp] = constrained_foopsi(y,b,c1,g,sn,options)
+function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options)
 % spike inference using a constrained deconvolution approach:
 %      min      sum(sp)
 %    c,sp,b,c1
@@ -174,9 +174,10 @@ switch method
             sp = zeros(T,1+options.resparse);
             bas = zeros(1+options.resparse,1);
             cin = zeros(1+options.resparse,1);
+            snScale = zeros(1+options.resparse,1);
             w_ = ones(T,1);
             for rep = 1:options.resparse+1
-                [c(:,rep),bas(rep),cin(rep)] = cvx_foopsi(y,b,c1,sn,b_lb,g,w_,~mis_data);
+                [c(:,rep),bas(rep),cin(rep),snScale(rep)] = cvx_foopsi(y,b,c1,sn,b_lb,g,w_,~mis_data);
                 sp(:,rep) = G*c(:,rep);                
                 w_ = 1./(max(sp(:,rep),0) + 1e-8);
             end

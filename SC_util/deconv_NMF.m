@@ -1,5 +1,5 @@
 function [dF,dF_denoised,dF_deconv,...
-    traceBs,traceGs,traceSNs,A,b,f] = deconv_NMF(acqObj)
+    traceBs,traceGs,traceSNs,traceSnScales,A,b,f] = deconv_NMF(acqObj)
 
 %% Get slice and acq info and load data
 nSlices = length(acqObj.roiInfo.slice);
@@ -36,6 +36,7 @@ dF_deconv = cell(nSlices,1);
 traceBs = cell(nSlices,1);
 traceGs = cell(nSlices,1);
 traceSNs = cell(nSlices,1);
+traceSnScales = cell(nSlices,1);
 
 for nSlice = 1:nSlices
     % get F_baseline from 1st (tonic) background component
@@ -61,15 +62,17 @@ for nSlice = 1:nSlices
     thisBs = nan*thisDF(:,1);
     thisGs = nan*thisDF(:,1);
     thisSNs = nan*thisDF(:,1);
+    thisSnScale = nan*thisDF(:,1);
     
     % Deconvolve each source
     parfor nSig = 1:size(thisDF,1)
-        [cDe,bs,c1,g,sn,sp] = constrained_foopsi(thisDF(nSig,:));
+        [cDe,bs,c1,g,sn,sp,snScale] = constrained_foopsi(thisDF(nSig,:));
         thisDF_denoised(nSig,:) = cDe + bs;
         thisDF_deconv(nSig,:) = sp;
         thisBs(nSig) = bs;
         thisGs(nSig) = g(1);
-        thisSNs(nSig) = sn(1);
+        thisSNs(nSig) = sn;
+        thisSnScale(nSig) = snScale
     end
     
     % Store data for each slice
@@ -79,4 +82,5 @@ for nSlice = 1:nSlices
     traceBs{nSlice} = thisBs;
     traceGs{nSlice} = thisGs;
     traceSNs{nSlice} = thisSNs;
+    traceSnScales{nSlice} = thisSnScale;
 end

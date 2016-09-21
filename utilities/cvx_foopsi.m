@@ -1,4 +1,4 @@
-function [c,b,c1] = cvx_foopsi(y,b,c1,sn,b_lb,g,w,keep)
+function [c,b,c1,snScale] = cvx_foopsi(y,b,c1,sn,b_lb,g,w,keep)
 
 % implementation of constrained foopsi in CVX
 % Written by Eftychios Pnevmatikakis
@@ -35,7 +35,7 @@ function [c,b,c1] = cvx_foopsi(y,b,c1,sn,b_lb,g,w,keep)
         if strcmpi(cvx_status,'Infeasible')
             snCheck = 0;
             sn = sn * 1.05;
-            fprintf('CVX Deconv Infeasible, sn scaled %0.3d \n',sn/snOrig),
+%             fprintf('CVX Deconv Infeasible, sn scaled %0.3d \n',sn/snOrig),
         else
             fprintf('CVX Deconv Feasible at %0.3d scaling \n',sn/snOrig),
             snCheck = 1;
@@ -68,4 +68,5 @@ function [c,b,c1] = cvx_foopsi(y,b,c1,sn,b_lb,g,w,keep)
 %         sn = cvx_optval/sqrt(sum(keep));
 %     end
     c = c2;
+    snScale = sn/snOrig;
 end
