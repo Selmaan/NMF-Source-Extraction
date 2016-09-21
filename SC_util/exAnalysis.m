@@ -1,6 +1,6 @@
 %%
 normTraces = bsxfun(@rdivide,abs(cellDeconv),mean(abs(cellDeconv),2));
-[bD,tI,vD] = binAlignNeurons(normTraces,syncObj);
+[bD,tI,vD] = binAlignNeurons(normTraces,FOV1.syncInfo);
 [maxVal,maxInd] = max(mean(bD,3),[],2);
 [~,pkSrt] = sort(maxInd,'ascend');
 figure,plot(squeeze(median(vD(10,:,:),3)))
@@ -208,7 +208,7 @@ line(alignBoundary*[1 1],[ay(1) ay(2)],'color','k','linestyle',':'),
 line(choiceOnset*[1 1],[ay(1) ay(2)],'color','k'),
 line(itiOnset*[1 1],[ay(1) ay(2)],'color','k','linestyle',':'),
 %% NMF Visualization
-[w,h] = nnmf(matConv(normTraces,2)',10);
+[w,h] = nnmf(normTraces',10);
 [~,maxH] = max(h);
 [~,displayInd] = sort(maxH,'ascend');
 figure,
