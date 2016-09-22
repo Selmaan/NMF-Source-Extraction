@@ -16,7 +16,7 @@ end
 FOV1.save
 
 %% Deconvolve and save clustered sources
-
+cd(FOV1.defaultDir),
 [dF,dF_denoised,dF_deconv,...
     traceBs,traceGs,traceSNs,traceSnScales,A,b,f] = deconv_NMF(FOV1);
 save('cellData_0921','dF','dF_denoised','dF_deconv',...
