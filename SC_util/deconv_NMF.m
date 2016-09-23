@@ -65,7 +65,10 @@ for nSlice = 1:nSlices
     thisSnScale = nan*thisDF(:,1);
     
     % Deconvolve each source
+    fprintf('Solving Deconvolution for Slice %0.2d \n',nSlice),
+    parfor_progress(size(thisDF,1));
     parfor nSig = 1:size(thisDF,1)
+        parfor_progress;
         [cDe,bs,c1,g,sn,sp,snScale] = constrained_foopsi(thisDF(nSig,:));
         thisDF_denoised(nSig,:) = cDe + bs;
         thisDF_deconv(nSig,:) = sp;
@@ -74,6 +77,7 @@ for nSlice = 1:nSlices
         thisSNs(nSig) = sn;
         thisSnScale(nSig) = snScale
     end
+    parfor_progress(0),
     
     % Store data for each slice
     dF{nSlice} = thisDF;
