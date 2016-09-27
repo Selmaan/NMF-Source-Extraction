@@ -1,6 +1,6 @@
 function extractSourcesNMF(acqObj,nSlice)
 
-syncObj = acqObj.derivedData(1).syncObj;
+syncObj = acqObj.syncInfo;
 acqBlocks = [1 syncObj.sliceFrames(1,nSlice)];
 for blockNum = 2:size(syncObj.sliceFrames,1)
     acqBlocks(blockNum,:) = ...
@@ -199,5 +199,6 @@ fprintf(' done. \n');
 
 %% Save Results
 
-saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v0913',nSlice));
+saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v0913.mat',nSlice));
+acqObj.roiInfo.slice(nSlice).NMF.filename = saveFile;
 save(saveFile,'A','b','C','f','P'),

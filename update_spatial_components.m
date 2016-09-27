@@ -42,6 +42,7 @@ if use_parallel         % solve BPDN problem for each pixel
 %     Nthr = max(20*maxNumCompThreads,round(d*T/2^24));
 %     Nthr = min(Nthr,round(d/1e3));
     Nthr = 510;
+%     Nthr = 1e3;
     siz_row = [floor(d/Nthr)*ones(Nthr-mod(d,Nthr),1);(floor(d/Nthr)+1)*ones(mod(d,Nthr),1)];
     indeces = [0;cumsum(siz_row)];
     Yf = cell(Nthr,1);
@@ -59,19 +60,21 @@ if use_parallel         % solve BPDN problem for each pixel
         Yf{nthr} = Ytemp*f'; 
         %Atemp = Acell{nthr};
         sn_temp = options.sn(indeces(nthr)+1:indeces(nthr+1));
-        parfor px = 1:siz_row(nthr)
-            fn = ~isnan(Ytemp(px,:));       % identify missing data
-            ind = find(IND_temp(px,:));
-            if ~isempty(ind);
-                ind2 = [ind,K+(1:size(f,1))];
-                %[~, ~, a, ~] = lars_regression_noise(Ycell{nthr}(px,fn)', Cf(ind2,fn)', 1, Psnc{nthr}(px)^2*T);
-                %[~, ~, a, ~] = lars_regression_noise(Ytemp(px,fn)', Cf(ind2,fn)', 1, Psnc{nthr}(px)^2*T);
-                warning('off','MATLAB:nargchk:deprecated'),
-                [~, ~, a, ~] = lars_regression_noise(Ytemp(px,fn)', Cf(ind2,fn)', 1, sn_temp(px)^2*T);
-                a_sparse = sparse(1,ind2,a');
-                Atemp(px,:) = a_sparse';
-            end
+        
+        ind = cell(siz_row(nthr),1);
+        Cf_temp = cell(siz_row(nthr),1);
+        for px = 1:siz_row(nthr)
+            ind{px} = [find(IND_temp(px,:)),K+(1:size(f,1))];
+            Cf_temp{px} = Cf(ind{px},:)';
         end
+        
+        parfor px = 1:siz_row(nthr)
+            warning('off','MATLAB:nargchk:deprecated'),
+            [~, ~, a, ~] = lars_regression_noise(Ytemp(px,:)', Cf_temp{px}, 1, sn_temp(px)^2*T); %Cf(ind{px},:)'
+            a_sparse = sparse(1,ind{px},a');
+            Atemp(px,:) = a_sparse';
+        end
+        
         if mod(nthr,30) == 0
             fprintf('%2.1f%% of pixels completed \n', indeces(nthr+1)*100/d);
         end

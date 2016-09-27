@@ -33,7 +33,12 @@ try
 catch
     warning(['Problem with Automatic Focus Block Detection: Using 1st and Last Points']),
     focusPoints = find(diff(frameOnsets)>1e3);
-    focusBlocks = reshape(focusPoints([1,end]),2,[])';
+    if length(focusPoints)>1
+        focusBlocks = reshape(focusPoints([1,end]),2,[])';
+    else
+        focusBlocks = [];
+        frameOnsets(focusPoints:end) = [];
+    end
 end
 nBlocks = size(focusBlocks,1) + 1;
 % For each imaging block, remove the frame after first entry in pair
