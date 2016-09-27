@@ -20,24 +20,37 @@ function [c,b,c1,snScale] = cvx_foopsi(y,b,c1,sn,b_lb,g,w,keep)
     snCheck = 0;
     snOrig = sn;
     while ~snCheck
-        cvx_begin quiet
-        variable c2(T)
-        if bas_est; variable b; end
-        if c1_est; variable c1; end
-        minimize(w'*(G*c2))
-        subject to
-            G*c2>=0;
-            norm(y(keep)-c2(keep)-b-c1*gd_vec(keep))<=sqrt(sum(keep))*sn;
-            if bas_est; b>=b_lb; end
-            if c1_est; c1>=0; end
-        cvx_end
+        try
+            cvx_begin quiet
+            variable c2(T)
+            if bas_est; variable b; end
+            if c1_est; variable c1; end
+            minimize(w'*(G*c2))
+            subject to
+                G*c2>=0;
+                norm(y(keep)-c2(keep)-b-c1*gd_vec(keep))<=sqrt(sum(keep))*sn;
+                if bas_est; b>=b_lb; end
+                if c1_est; c1>=0; end
+            cvx_end
+        catch %Try the default solver if mosek fails
+            cvx_begin quiet
+            cvx_solver SDPT3
+            variable c2(T)
+            if bas_est; variable b; end
+            if c1_est; variable c1; end
+            minimize(w'*(G*c2))
+            subject to
+                G*c2>=0;
+                norm(y(keep)-c2(keep)-b-c1*gd_vec(keep))<=sqrt(sum(keep))*sn;
+                if bas_est; b>=b_lb; end
+                if c1_est; c1>=0; end
+            cvx_end
+        end
         
         if strcmpi(cvx_status,'Infeasible')
             snCheck = 0;
             sn = sn * 1.05;
-%             fprintf('CVX Deconv Infeasible, sn scaled %0.3d \n',sn/snOrig),
         else
-            fprintf('CVX Deconv Feasible at %0.3d scaling \n',sn/snOrig),
             snCheck = 1;
         end
     end
