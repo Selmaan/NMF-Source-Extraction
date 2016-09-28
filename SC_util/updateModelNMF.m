@@ -1,6 +1,6 @@
 function [A,b,C,f,P] = updateModelNMF(acqObj,nSlice,A,b,C,f,P)
 
-syncObj = acqObj.derivedData(1).syncObj;
+syncObj = acqObj.syncInfo;
 acqBlocks = [1 syncObj.sliceFrames(1,nSlice)];
 for blockNum = 2:size(syncObj.sliceFrames,1)
     acqBlocks(blockNum,:) = ...
