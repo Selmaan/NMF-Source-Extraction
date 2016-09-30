@@ -47,7 +47,7 @@ function [c,b,c1,snScale] = cvx_foopsi(y,b,c1,sn,b_lb,g,w,keep)
             cvx_end
         end
         
-        if strcmpi(cvx_status,'Infeasible')
+        if strcmpi(cvx_status,'Infeasible') || strcmpi(cvx_status,'Inaccurate/Infeasible')
             snCheck = 0;
             sn = sn * 1.05;
         else
