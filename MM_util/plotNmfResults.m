@@ -1,7 +1,10 @@
+%%
 cIm = zeros(512,512,3);
 cIm(:,:,1) = reshape(sum(A(:,sourceProps.idx==sourceProps.sigRank(1)),2),512,512);
 cIm(:,:,2) = reshape(sum(A(:,sourceProps.idx==sourceProps.sigRank(2)),2),512,512);
 cIm(:,:,3) = reshape(sum(A(:,sourceProps.idx==sourceProps.sigRank(3)),2),512,512);
+cIm(:,:,3) = cIm(:,:,3) + reshape(sum(A(:,sourceProps.idx==sourceProps.sigRank(4)),2),512,512);
+cIm(:,:,2) = cIm(:,:,2) + reshape(sum(A(:,sourceProps.idx==sourceProps.sigRank(4)),2),512,512);
 
 figure(2)
 imshow(cIm*4, 'parent', gca)
@@ -48,6 +51,20 @@ for i = 1:numel(bounds)
 end
 
 %% Plot traces
-sel = sourceProps.idx==sourceProps.sigRank(1);
-for i = 1:numel
+sel = sourceProps.idx==sourceProps.sigRank(2);
+figure(99)
+clf
+hold on
+offset = 0;
+for i = 1:numel(sel)
+    
+    if ~sel(i)
+        continue
+    end
+    
+    plot(C(i, :) + offset)
+    
+    offset = offset + max(C(i, :));
+end
+    
 
