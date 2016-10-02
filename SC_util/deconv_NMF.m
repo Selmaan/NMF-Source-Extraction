@@ -22,10 +22,19 @@ for nSlice = 1:nSlices
         else
             offsetInd = 0;
         end
-        blockLength = acqObj.syncInfo.validFrameCount(nBlock)/5;
+        blockLength = acqObj.syncInfo.validFrameCount(nBlock)/...
+            (nSlices+acqObj.metaDataSI.SI.hFastZ.numDiscardFlybackFrames);
         C{nSlice,nBlock} = D.C(:,offsetInd+1:offsetInd+blockLength);
         f{nSlice,nBlock} = D.f(:,offsetInd+1:offsetInd+blockLength);
     end
+end
+
+% Get frameRate:
+if acqObj.metaDataSI.SI.hFastZ.enable
+    frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate...
+        /acqObj.metaDataSI.SI.hFastZ.numFramesPerVolume);
+else
+    frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate);
 end
 
 %% Deconvolve all traces
@@ -44,13 +53,20 @@ for nSlice = 1:nSlices
     thisB = b{nSlice};
     thisF = cell2mat(f(nSlice,:));
     normA = bsxfun(@rdivide,thisA,sum(thisA));
-    baseF = median(thisF(1,:)) * normA'*thisB(:,1);
+    
+    % Selmaan uses only the first of the two background sources, but in
+    % general, perhaps especially for transgenic animals, we should just
+    % combine them into one (just looking at one session, the difference
+    % between using just the first or combinng both is very small):
+%     baseF = median(sum(thisF, 1)) * normA'*thisB(:,1);
+    baseF = sum(bsxfun(@times, normA'*thisB, median(thisF, 2)'), 2);
+    
     
     % remove trace baseline for each acquisition block independently
     for nBlock = 1:nBlocks
         thisC = C{nSlice,nBlock};
         parfor nSig = 1:size(thisC,1)
-            thisC(nSig,:) = removeSourceBaseline(thisC(nSig,:)/baseF(nSig));
+            thisC(nSig,:) = removeSourceBaseline_lowpassfilter(thisC(nSig,:)/baseF(nSig), frameRate);
         end
         C{nSlice,nBlock} = thisC;
     end
