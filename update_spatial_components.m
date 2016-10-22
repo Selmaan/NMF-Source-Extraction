@@ -76,7 +76,6 @@ if use_parallel         % solve BPDN problem for each pixel
                 Atemp(px,:) = a_sparse';
             catch
                 fprintf('LARS failure at pixel %0.6d',indeces(nthr) + px),
-                Atemp(px,:) = 0;
             end
         end
         
