@@ -41,7 +41,7 @@ Cf = [C;f];
 if use_parallel         % solve BPDN problem for each pixel
 %     Nthr = max(20*maxNumCompThreads,round(d*T/2^24));
 %     Nthr = min(Nthr,round(d/1e3));
-    Nthr = 510;
+    Nthr = 512;
 %     Nthr = 1e3;
     siz_row = [floor(d/Nthr)*ones(Nthr-mod(d,Nthr),1);(floor(d/Nthr)+1)*ones(mod(d,Nthr),1)];
     indeces = [0;cumsum(siz_row)];
