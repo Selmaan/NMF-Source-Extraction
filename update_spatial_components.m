@@ -70,9 +70,14 @@ if use_parallel         % solve BPDN problem for each pixel
         
         parfor px = 1:siz_row(nthr)
             warning('off','MATLAB:nargchk:deprecated'),
-            [~, ~, a, ~] = lars_regression_noise(Ytemp(px,:)', Cf_temp{px}, 1, sn_temp(px)^2*T); %Cf(ind{px},:)'
-            a_sparse = sparse(1,ind{px},a');
-            Atemp(px,:) = a_sparse';
+            try
+                [~, ~, a, ~] = lars_regression_noise(Ytemp(px,:)', Cf_temp{px}, 1, sn_temp(px)^2*T); %Cf(ind{px},:)'
+                a_sparse = sparse(1,ind{px},a');
+                Atemp(px,:) = a_sparse';
+            catch
+                fprintf('LARS failure at pixel %0.6d',indeces(nthr) + px),
+                Atemp(px,:) = 0;
+            end
         end
         
         if mod(nthr,30) == 0
