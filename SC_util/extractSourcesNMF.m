@@ -133,10 +133,6 @@ P.gn = cell(numRetain,1);
 P.neuron_sn = cell(numRetain,1);
 
 %% 1-pass on data to get traces w/out dynamics
-% P.p = 0;
-% options.temporal_iter = 10;
-% [C,f,P] = update_temporal_components(data,A,b,C,f,P,options);
-
 
 % Remove Source Baseline and neuropil (rough estimate w robust fit)
 % This is just to help background + neuropil signals be absorbed into the
@@ -150,8 +146,6 @@ for nAcq = 1:size(acqBlocks,1)
         cSub = removeSourceBaseline(C(nSource,acqInd));
         pilFit = robustfit(fSub,cSub,'bisquare',2);
         C(nSource,acqInd) = cSub - pilFit(1) - pilFit(2)*fSub;
-%         C(nSource,acqInd) = ...
-%             removeSourceBaseline(C(nSource,acqInd) - pilFit(1) - pilFit(2)*fSub);
     end
 end
 warning(warnState);
@@ -166,6 +160,12 @@ cNorm = sqrt(sum(C.^2,2));
 C = bsxfun(@rdivide,C,cNorm);
 fNorm = sqrt(sum(f.^2,2));
 f = bsxfun(@rdivide,f,fNorm);
+
+% Trying alternate change here, where f is scaled way up compared to C, so
+% that weights on background signals are effectively free
+scaleFactor = 1e3;
+f = f * scaleFactor;
+
 
 fprintf('Updating spatial components... (1)');
 warning('off','MATLAB:nargchk:deprecated'),
