@@ -3,19 +3,20 @@ function [Zin,ip_it] = plain_foopsi(H,D,I_est,eps)
 % solves argmin ||X-H||^2 subject to D*X>=0 with an interior point method
 % using I_est as the initial value and eps as the initial barrier weight
 
+H = H(:);
 
 ln = length(H);
 step_back_frac = 0.5;
 iter = 0;
-if nargin == 2
+if nargin <3
     I_est = 1e-3*ones(ln,1);
-    eps = 1;
 end
 Zin = I_est(:);
 
-if nargin == 3
+if nargin < 4
     eps = 1;
 end
+
 while eps>1e-5
     n = D*Zin;
     nnd = 10;
