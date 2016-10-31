@@ -1,6 +1,6 @@
 %%
-normTraces = bsxfun(@rdivide,abs(cellDeconv),mean(abs(cellDeconv),2));
-[bD,tI,vD] = binAlignNeurons(normTraces,FOV1.syncInfo);
+% normTraces = bsxfun(@rdivide,abs(de_),mean(abs(cellDeconv),2));
+[bD,tI,vD] = binAlignNeurons(de_cell,FOV1.syncInfo);
 [maxVal,maxInd] = max(mean(bD,3),[],2);
 [~,pkSrt] = sort(maxInd,'ascend');
 figure,plot(squeeze(median(vD(10,:,:),3)))

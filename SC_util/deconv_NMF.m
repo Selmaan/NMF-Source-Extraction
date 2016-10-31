@@ -85,15 +85,19 @@ for nSlice = 1:nSlices
     parfor_progress(size(thisDF,1));
     parfor nSig = 1:size(thisDF,1)
         parfor_progress;
-        [cDe,bs,c1,g,sn,sp,snScale] = constrained_foopsi(thisDF(nSig,:));
-        thisDF_denoised(nSig,:) = cDe + bs;
-        thisDF_deconv(nSig,:) = sp;
-        thisBs(nSig) = bs;
-        thisGs(nSig) = g(1);
-        thisSNs(nSig) = sn;
-        thisSnScale(nSig) = snScale
+        try
+            [cDe,bs,c1,g,sn,sp,snScale] = constrained_foopsi(thisDF(nSig,:));
+            thisDF_denoised(nSig,:) = cDe + bs;
+            thisDF_deconv(nSig,:) = sp;
+            thisBs(nSig) = bs;
+            thisGs(nSig) = g(1);
+            thisSNs(nSig) = sn;
+            thisSnScale(nSig) = snScale;
+        catch
+            warning('Deconvolution Failure in Slice %d Sig %d',nSlice,nSig),
+        end
     end
-    parfor_progress(0),
+    parfor_progress(0);
     
     % Store data for each slice
     dF{nSlice} = thisDF;

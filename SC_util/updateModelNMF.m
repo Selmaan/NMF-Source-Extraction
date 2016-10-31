@@ -1,5 +1,20 @@
 function [A,b,C,f,P] = updateModelNMF(acqObj,nSlice,A,b,C,f,P)
 
+% load(FOV1.roiInfo.slice(nSlice).NMF.filename),
+
+% Global Time-Constant
+gTau = 1.5;
+
+if acqObj.metaDataSI.SI.hFastZ.enable
+    frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate...
+        /acqObj.metaDataSI.SI.hFastZ.numFramesPerVolume);
+else
+    frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate);
+end
+
+%global gValue
+gVal = 1 - 1/(frameRate*gTau);
+
 syncObj = acqObj.syncInfo;
 acqBlocks = [1 syncObj.sliceFrames(1,nSlice)];
 for blockNum = 2:size(syncObj.sliceFrames,1)
@@ -9,13 +24,6 @@ end
 
 imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
 nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel.size(:,3));
-
-if acqObj.metaDataSI.SI.hFastZ.enable
-    frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate...
-        /acqObj.metaDataSI.SI.hFastZ.numFramesPerVolume);
-else
-    frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate);
-end
 
 %% Set parameters
 patch_size = [52,52];                   % size of each patch along each dimension (optional, default: [32,32])
@@ -34,16 +42,21 @@ options = CNMFSetParms(...
     'medw',[1 1]);
 
 %%
+fprintf('\n Projecting Traces with Global Tau: %0.2d',(1/(1-gVal))/frameRate),
 warnState = warning('off', 'stats:statrobustfit:IterationLimit');
+parfor_progress(size(acqBlocks,1)*size(C,1));
 for nAcq = 1:size(acqBlocks,1)
     acqInd = acqBlocks(nAcq,1):acqBlocks(nAcq,2);
+%     gMat = make_G_matrix(length(acqInd),gVal);
     parfor nSource = 1:size(C,1)
+        parfor_progress;
         warning('off', 'stats:statrobustfit:IterationLimit');
         C(nSource,acqInd) = removeSourceBaseline(C(nSource,acqInd));
+        C(nSource,acqInd) = constrained_foopsi(C(nSource,acqInd),[],[],gVal);
     end
 end
 warning(warnState);
- 
+parfor_progress(0);
 % Set negative values of C to 0 and rescale C + f
 % Rescale because the original lars problem for each pixel minimizes the
 % total weight over all sources including background! Don't want to
@@ -54,6 +67,11 @@ cNorm = sqrt(sum(C.^2,2));
 C = bsxfun(@rdivide,C,cNorm);
 fNorm = sqrt(sum(f.^2,2));
 f = bsxfun(@rdivide,f,fNorm);
+
+% Trying alternate change here, where f is scaled way up compared to C, so
+% that weights on background signals are effectively free
+scaleFactor = 1e3;
+f = f * scaleFactor;
 
 fprintf('Updating spatial components... (1)');
 warning('off','MATLAB:nargchk:deprecated'),

@@ -58,7 +58,8 @@ frameOnsets(excludeInd) = [];
 % This loop attempts to identify continuous acquisitions from file names,
 % and the largest number of frames consistent over all slices
 nSlices = length(acqObj.correctedMovies.slice);
-acqPref = acqObj.acqName;
+% acqPref = acqObj.acqName;
+acqPref = acqObj.Movies{1}(1:end-16);
 for nBlock = 1:nBlocks
     thisPref = sprintf('%s_%0.5d',acqPref,nBlock);
     theseMovs =cellfun(@(x)strfind(x,thisPref),acqObj.Movies,'UniformOutput',0);

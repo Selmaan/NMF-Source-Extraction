@@ -41,7 +41,7 @@ Cf = [C;f];
 if use_parallel         % solve BPDN problem for each pixel
 %     Nthr = max(20*maxNumCompThreads,round(d*T/2^24));
 %     Nthr = min(Nthr,round(d/1e3));
-    Nthr = 510;
+    Nthr = 512;
 %     Nthr = 1e3;
     siz_row = [floor(d/Nthr)*ones(Nthr-mod(d,Nthr),1);(floor(d/Nthr)+1)*ones(mod(d,Nthr),1)];
     indeces = [0;cumsum(siz_row)];
@@ -70,9 +70,13 @@ if use_parallel         % solve BPDN problem for each pixel
         
         parfor px = 1:siz_row(nthr)
             warning('off','MATLAB:nargchk:deprecated'),
-            [~, ~, a, ~] = lars_regression_noise(Ytemp(px,:)', Cf_temp{px}, 1, sn_temp(px)^2*T); %Cf(ind{px},:)'
-            a_sparse = sparse(1,ind{px},a');
-            Atemp(px,:) = a_sparse';
+            try
+                [~, ~, a, ~] = lars_regression_noise(Ytemp(px,:)', Cf_temp{px}, 1, sn_temp(px)^2*T); %Cf(ind{px},:)'
+                a_sparse = sparse(1,ind{px},a');
+                Atemp(px,:) = a_sparse';
+            catch
+                fprintf('LARS failure at pixel %0.6d',indeces(nthr) + px),
+            end
         end
         
         if mod(nthr,30) == 0

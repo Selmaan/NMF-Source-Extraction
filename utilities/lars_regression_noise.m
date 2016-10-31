@@ -215,6 +215,7 @@ if flag == 0
         W_lam = Ws(:,i-1) + w_dir*(lambdas(i-1)-lam(1));
     else
         cvx_begin quiet
+        cvx_solver SDPT3
             variable W_lam(size(X,2));
             minimize(sum(W_lam));
             subject to
