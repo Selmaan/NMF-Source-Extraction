@@ -10,8 +10,8 @@ end
 pA = pinv(full([A,b]));
 % pA = pinv_sparse([A,b]);
 %% 
-imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
-nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel.size(:,3));
+imSize = acqObj.correctedMovies.slice(nSlice).channel(1).size(1,1:2);
+nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel(1).size(:,3));
 step = 1000;
 frameBatches = 1:step:nFrames;
 frameBatches(2,:) = min(frameBatches(1,:) + step - 1, nFrames);

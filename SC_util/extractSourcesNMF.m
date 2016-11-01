@@ -7,8 +7,8 @@ for blockNum = 2:size(syncObj.sliceFrames,1)
         [1+syncObj.sliceFrames(blockNum-1,nSlice), syncObj.sliceFrames(blockNum,nSlice)];
 end
 
-imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
-nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel.size(:,3));
+imSize = acqObj.correctedMovies.slice(nSlice).channel(1).size(1,1:2);
+nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel(1).size(:,3));
 
 if acqObj.metaDataSI.SI.hFastZ.enable
     frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate...
@@ -36,14 +36,14 @@ options = CNMFSetParms(...
 %% Get Patches Results
 patches = construct_patches(imSize,patch_size,overlap);
 
-parfor_progress(length(patches));
-parfor_progress;
+% parfor_progress(length(patches));
+% parfor_progress;
 RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,tBin);
-parfor patchNum = 2:length(patches)
-    parfor_progress;
+for patchNum = 2:length(patches)
+%     parfor_progress;
     RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,tBin);
 end
-parfor_progress(0);
+% parfor_progress(0);
 
 %% combine results into one structure
 fprintf('Combining results from different patches...');
@@ -119,7 +119,7 @@ Kn = nSources;
 while Km < Kn
     Kn = size(A,2);
     [A,C] = merge_components([],A,[],C,f,P,[],options);
-    Km = size(A,2),
+    Km = size(A,2)
 end
 
 [A,C] = order_ROIs(A,C);
@@ -141,7 +141,7 @@ warnState = warning('off', 'stats:statrobustfit:IterationLimit');
 for nAcq = 1:size(acqBlocks,1)
     acqInd = acqBlocks(nAcq,1):acqBlocks(nAcq,2);
     fSub = removeSourceBaseline(sum(f(:,acqInd),1));
-    parfor nSource = 1:size(C,1)
+    for nSource = 1:size(C,1)
         warning('off', 'stats:statrobustfit:IterationLimit');
         cSub = removeSourceBaseline(C(nSource,acqInd));
         pilFit = robustfit(fSub,cSub,'bisquare',2);
@@ -160,12 +160,6 @@ cNorm = sqrt(sum(C.^2,2));
 C = bsxfun(@rdivide,C,cNorm);
 fNorm = sqrt(sum(f.^2,2));
 f = bsxfun(@rdivide,f,fNorm);
-
-% Trying alternate change here, where f is scaled way up compared to C, so
-% that weights on background signals are effectively free
-scaleFactor = 1e3;
-f = f * scaleFactor;
-
 
 fprintf('Updating spatial components... (1)');
 warning('off','MATLAB:nargchk:deprecated'),

@@ -2,8 +2,8 @@ function result = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,tBin)
 
 %% Setup and Data
 result = struct();
-imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
-nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel.size(:,3));
+imSize = acqObj.correctedMovies.slice(nSlice).channel(1).size(1,1:2);
+nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel(1).size(:,3));
 
 dMap = memmapfile(acqObj.indexedMovie.slice(nSlice).channel(1).fileName,...
     'Format', {'int16', [nFrames, prod(imSize)], 'mov'});
