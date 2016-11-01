@@ -65,7 +65,7 @@ for nSlice = 1:nSlices
     % remove trace baseline for each acquisition block independently
     for nBlock = 1:nBlocks
         thisC = C{nSlice,nBlock};
-        parfor nSig = 1:size(thisC,1)
+        for nSig = 1:size(thisC,1)
             thisC(nSig,:) = removeSourceBaseline_lowpassfilter(thisC(nSig,:)/baseF(nSig), frameRate);
         end
         C{nSlice,nBlock} = thisC;
@@ -83,7 +83,7 @@ for nSlice = 1:nSlices
     % Deconvolve each source
     fprintf('Solving Deconvolution for Slice %0.2d \n',nSlice),
     parfor_progress(size(thisDF,1));
-    parfor nSig = 1:size(thisDF,1)
+    for nSig = 1:size(thisDF,1)
         parfor_progress;
         try
             [cDe,bs,c1,g,sn,sp,snScale] = constrained_foopsi(thisDF(nSig,:));
