@@ -1,7 +1,7 @@
 function g = estimate_time_constants(y,p,sn,lags,nBinsAR,fR,minTau,maxTau)
     % estimate time constants from the sample autocovariance function
     
-    %% Default Parameters
+%% Default Parameters
     
 if ~exist('nBinsAR','var') || isempty(nBinsAR)
     nBinsAR = 10; % # of bins for computing AR model coefficients
@@ -16,7 +16,7 @@ if ~exist('minTau','var') || isempty(minTau)
 end
 
 if ~exist('maxTau','var') || isempty(maxTau)
-    maxTau = 3; % in seconds
+    maxTau = 4; % in seconds
 end
 
 minG = 1-1/(minTau*fR);

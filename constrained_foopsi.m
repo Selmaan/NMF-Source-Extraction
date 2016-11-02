@@ -46,7 +46,7 @@ defoptions.noise_range = [0.33,0.5];    % frequency range over which to estimate
 defoptions.noise_method = 'logmexp';    % method for which to estimate the noise level
 defoptions.lags = 30;                    % number of extra lags when computing the AR coefficients
 defoptions.resparse = 0;                % number of times to re-sparse solution
-defoptions.fudge_factor = .98;            % fudge factor for time constants
+defoptions.fudge_factor = .99;            % fudge factor for time constants
 
 if nargin < 6
     options = defoptions;
