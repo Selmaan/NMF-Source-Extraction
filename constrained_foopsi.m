@@ -39,7 +39,6 @@ function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options)
 % Written by:
 % Eftychios A. Pnevmatikakis, Simons Foundation, 2015 
 
-nBinsAR = 10; % # of bins for computing AR model coefficients
 defoptions.p = 1;
 defoptions.method = 'cvx';
 defoptions.bas_nonneg = 1;              % nonnegativity option for baseline estimation
@@ -102,11 +101,11 @@ if isempty(sn)
     sn = GetSn(y_full,options.noise_range,options.noise_method);
 end
 if isempty(g)
-    g = estimate_time_constants(y_full,options.p,sn,options.lags,nBinsAR);
+    g = estimate_time_constants(y_full,options.p,sn,options.lags);
     while max(abs(roots([1,-g(:)']))>1) && options.p < 5
         warning('No stable AR(%i) model found. Checking for AR(%i) model \n',options.p,options.p+1);
         options.p = options.p + 1;
-        g = estimate_time_constants(y,options.p,sn,options.lags,nBinsAR);
+        g = estimate_time_constants(y,options.p,sn,options.lags);
     end
     if options.p == 5
         g = 0;
@@ -253,19 +252,9 @@ end
                 sn = sqrt(exp(mean(log(psd_Y(ind)/2))));
         end
     end
-
-    
-    function g = estimate_time_constants(y,p,sn,lags,nBinsAR)
-        % estimate time constants from the sample autocovariance function
-        nI = floor(length(y)/nBinsAR);
-        yMat = reshape(y(1:nI*nBinsAR),nI,nBinsAR);
-        lags = lags + p;
         
-        for i=1:nBinsAR
-            xc(i,:) = xcov(yMat(:,i),lags,'biased');
-        end
-        xc = median(xc)';
-        
+%         function g = estimate_time_constants(y,p,sn,lags,nBinsAR)
+%         lags = lags + p;
 %         if ~isempty(which('xcov')) %signal processing toolbox
 %             xc = xcov(y,lags,'biased');
 %         else
@@ -276,10 +265,10 @@ end
 %             end
 %             xc = [flipud(xc(2:end)); xc] / numel(y);
 %         end
-        xc = xc(:);
-        A = toeplitz(xc(lags+(1:lags)),xc(lags+(1:p))) - sn^2*eye(lags,p);
-        g = pinv(A)*xc(lags+2:end);            
-    end
+%         xc = xc(:);
+%         A = toeplitz(xc(lags+(1:lags)),xc(lags+(1:p))) - sn^2*eye(lags,p);
+%         g = pinv(A)*xc(lags+2:end);            
+%     end
 
     function [f,grad] = lagrangian_temporal_gradient(Al,thr,y_raw,bas_flag,c1_flag)
         options_qp = optimset('Display','Off','Algorithm','interior-point-convex');
