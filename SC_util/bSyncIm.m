@@ -15,6 +15,7 @@ if ~exist('vrFile','var') || isempty(vrFile)
 end
 
 % load files
+warning('off', 'MATLAB:load:classError')
 wsInfo = h5info(wsFile);
 syncGroup = wsInfo.Groups(end).Name;
 wvData = h5read(wsFile,[syncGroup '/analogScans']);
