@@ -30,16 +30,17 @@ frameTrig = diff(wvData(:,4)>8e3);
 frameOnsets = find(frameTrig==1);
 % focus blocks between acquisitions give a pair of long inter-frame-intervals
 try
-    focusBlocks = reshape(find(diff(frameOnsets)>1e3),2,[])';
+    focusPoints = find(diff(frameOnsets)>1e3);
+    focusBlocks = reshape(focusPoints,2,[])';
 catch
-    warning(['Problem with Automatic Focus Block Detection: Using 1st and Last Points']),
+    warning(['Problem with Automatic Focus Block Detection: Clipping all Frames after last break']),
     focusPoints = find(diff(frameOnsets)>1e3);
     if length(focusPoints)>1
-        focusBlocks = reshape(focusPoints([1,end]),2,[])';
+        focusBlocks = reshape(focusPoints(1:end-1),2,[])';
     else
         focusBlocks = [];
-        frameOnsets(focusPoints:end) = [];
     end
+    frameOnsets(focusPoints(end):end) = [];
 end
 nBlocks = size(focusBlocks,1) + 1;
 % For each imaging block, remove the frame after first entry in pair
