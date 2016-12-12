@@ -39,11 +39,14 @@ patches = construct_patches(imSize,patch_size,overlap);
 parfor_progress(length(patches));
 parfor_progress;
 RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,tBin);
+delete(gcp('nocreate'));
+p = parpool(3);
 parfor patchNum = 2:length(patches)
     parfor_progress;
     RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,tBin);
 end
 parfor_progress(0);
+delete(p);
 
 %% combine results into one structure
 fprintf('Combining results from different patches...');
@@ -133,6 +136,9 @@ P.gn = cell(numRetain,1);
 P.neuron_sn = cell(numRetain,1);
 
 %% 1-pass on data to get traces w/out dynamics
+c = parcluster('local');
+c.NumWorkers = 10;
+p = parpool(10);
 
 % Remove Source Baseline and neuropil (rough estimate w robust fit)
 % This is just to help background + neuropil signals be absorbed into the
