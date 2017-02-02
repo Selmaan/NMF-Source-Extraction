@@ -1,4 +1,4 @@
-function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options)
+function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options,fR)
 % spike inference using a constrained deconvolution approach:
 %      min      sum(sp)
 %    c,sp,b,c1
@@ -10,6 +10,7 @@ function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options)
 
 %   Variables:
 %   y:      raw fluorescence data (vector of length(T))
+%   fR:     frame rate of the data (for estimating time-constants)
 %   c:      denoised calcium concentration (Tx1 vector)
 %   b:      baseline concentration (scalar)
 %  c1:      initial concentration (scalar)
@@ -101,11 +102,11 @@ if isempty(sn)
     sn = GetSn(y_full,options.noise_range,options.noise_method);
 end
 if isempty(g)
-    g = estimate_time_constants(y_full,options.p,sn,options.lags);
+    g = estimate_time_constants(y_full,options.p,sn,options.lags,fR);
     while max(abs(roots([1,-g(:)']))>1) && options.p < 5
         warning('No stable AR(%i) model found. Checking for AR(%i) model \n',options.p,options.p+1);
         options.p = options.p + 1;
-        g = estimate_time_constants(y,options.p,sn,options.lags);
+        g = estimate_time_constants(y,options.p,sn,options.lags,fR);
     end
     if options.p == 5
         g = 0;

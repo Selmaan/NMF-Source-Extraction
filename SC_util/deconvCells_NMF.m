@@ -6,6 +6,8 @@ if nargin < 2
 end
 
 [dF,A,b,f] = extractTraces_NMF(acqObj);
+fR = acqObj.metaDataSI.SI.hRoiManager.scanVolumeRate;
+fprintf('Frame Rate: %.2f \n',fR);
 nSlices = length(dF);
 
 cIds = cell(nSlices,1);
@@ -32,7 +34,8 @@ for nSlice = 1:nSlices
     parfor nSig = 1:size(thisDF,1)
         parfor_progress;
         try
-            [cDe,bs,c1,g,sn,sp,snScale] = constrained_foopsi(thisDF(nSig,:));
+            [cDe,bs,c1,g,sn,sp,snScale] = constrained_foopsi...
+                (thisDF(nSig,:),[],[],[],[],[],fR);
             thisDF_denoised(nSig,:) = cDe + bs;
             thisDF_deconv(nSig,:) = sp;
             thisBs(nSig) = bs;
