@@ -1,14 +1,38 @@
 function [dF_cells,dF_denoised,dF_deconv,...
-    traceBs,traceGs,traceSNs,traceSnScales,A,b,f,cIds] = deconvCells_NMF(acqObj,cellLabel)
+    traceBs,traceGs,traceSNs,traceSnScales,A,b,f,cIds] = deconvCells_NMF(acqObj,cellLabel,interpFrames)
 
-if nargin < 2
+if nargin < 2 || isempty(cellLabel)
     cellLabel = 1;
 end
 
+if nargin < 3 || isempty(interpFrames)
+    interpFrames = [];
+end
+
 [dF,A,b,f] = extractTraces_NMF(acqObj);
+nSlices = length(dF);
+
+if ~isempty(interpFrames)
+    for nSlice = 1:nSlices
+        thisDF = dF{nSlice};
+        thisF = f{nSlice};
+        nInterp = length(interpFrames)-1;
+        blankFrames = interpFrames{1};
+        interpVals = 0*thisDF(:,blankFrames);
+        interpF = 0*thisF(:,blankFrames);
+        for i=1:nInterp
+            interpVals = interpVals + thisDF(:,interpFrames{i+1})/nInterp;
+            interpF = interpF + thisF(:,interpFrames{i+1})/nInterp;
+        end
+        thisDF(:,blankFrames) = interpVals;
+        thisF(:,blankFrames) = interpF;
+        dF{nSlices} = thisDF;
+        f{nSlice} = thisF;
+    end
+end
+
 fR = acqObj.metaDataSI.SI.hRoiManager.scanVolumeRate;
 fprintf('Frame Rate: %.2f \n',fR);
-nSlices = length(dF);
 
 cIds = cell(nSlices,1);
 dF_cells = cell(nSlices,1);

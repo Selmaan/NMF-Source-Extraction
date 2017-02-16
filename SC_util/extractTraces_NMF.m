@@ -36,6 +36,7 @@ end
 
 %% Get Traces
 dF = cell(nSlices,1);
+f_cat = cell(nSlices,1);
 for nSlice = 1:nSlices
     % get F_baseline from 1st (tonic) background component
     thisA = A{nSlice};
@@ -59,4 +60,8 @@ for nSlice = 1:nSlices
     
     % Store data for each slice
     dF{nSlice} = thisDF;
+    f_cat{nSlice} = cell2mat(f(nSlice,:));
 end
+
+% reformat f data to be compatable with dF formatting
+f = f_cat;
