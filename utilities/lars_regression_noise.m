@@ -21,7 +21,6 @@ function [Ws, lambdas, W_lam, lam, flag] = lars_regression_noise(Y, X, positive,
 %   Cps: C_p estimates
 %   last_break:     last_break(m) == n means that the last break with m non-zero weights is at Ws(:,:,n)
 
-
 verbose=false;
 %verbose=true;
 
@@ -215,12 +214,11 @@ if flag == 0
         W_lam = Ws(:,i-1) + w_dir*(lambdas(i-1)-lam(1));
     else
         cvx_begin quiet
-        cvx_solver SDPT3
             variable W_lam(size(X,2));
             minimize(sum(W_lam));
             subject to
                 W_lam >= 0;
-                norm(Y-X*W_lam)<= sqrt(noise);
+                norm(double(Y)-double(X)*W_lam)<= sqrt(double(noise));
         cvx_end
         lam = 10;
     end

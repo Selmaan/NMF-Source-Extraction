@@ -1,11 +1,11 @@
-function [c,b,c1,gStruct,sn,sp] = MCEM_foopsi(y,b,c1,g,sn,options)
+function [c,b,c1,g,sn,sp] = MCEM_foopsi(y,b,c1,g,sn,options)
     defoptions.dt = 1;
     defoptions.MaxIter = 10;
     defoptions.MaxInerIter = 50;
     defoptions.TauStd = [0.2,2];
     defoptions.default_g = [0.6,0.9];
     
-    if nargin < 6; options = defoptions; end 
+    if nargin < 6; options.defoptions; end 
     if ~isfield(options,'dt'); options.dt = defoptions.dt; end
     if ~isfield(options,'MaxIter'); options.MaxIter = defoptions.MaxIter; end
     if ~isfield(options,'MaxInerIter'); options.MaxInerIter = defoptions.MaxInerIter; end
@@ -130,6 +130,6 @@ function [c,b,c1,gStruct,sn,sp] = MCEM_foopsi(y,b,c1,g,sn,options)
         %disp(tauMoves);
         
     end
-    gStruct.g = g(1:p);
-    gStruct.TAU = tau_sam(:,3-p:2);
+    g.g = g;
+    g.TAU = tau_sam(:,3-p:2);
 end
