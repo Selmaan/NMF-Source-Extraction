@@ -1,4 +1,4 @@
-function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options,fR)
+function [c,b,c1,g,sn,sp] = constrained_foopsi(y,b,c1,g,sn,options)
 % spike inference using a constrained deconvolution approach:
 %      min      sum(sp)
 %    c,sp,b,c1
@@ -10,7 +10,6 @@ function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options,fR)
 
 %   Variables:
 %   y:      raw fluorescence data (vector of length(T))
-%   fR:     frame rate of the data (for estimating time-constants)
 %   c:      denoised calcium concentration (Tx1 vector)
 %   b:      baseline concentration (scalar)
 %  c1:      initial concentration (scalar)
@@ -29,7 +28,7 @@ function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options,fR)
 %                       'cvx' uses the cvx package available from cvxr.com (default)
 %                      'lars' uses the least regression algorithm 
 %                     'spgl1' uses the spgl1 package available from
-%                     math.ucdavis.edu/~mpf/spgl1/  (usually fastest)
+%                     math.ucdavis.edu/~mpf/spgl1/  (can be faster)
 %   bas_nonneg:   flag for setting the baseline lower bound. if 1, then b >= 0 else b >= min(y)
 %   noise_range:  frequency range over which the noise power is estimated. Default [Fs/4,Fs/2]
 %   noise_method: method to average the PSD in order to obtain a robust noise level estimate
@@ -40,14 +39,14 @@ function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options,fR)
 % Written by:
 % Eftychios A. Pnevmatikakis, Simons Foundation, 2015 
 
-defoptions.p = 1;
+defoptions.p = 2;
 defoptions.method = 'cvx';
 defoptions.bas_nonneg = 1;              % nonnegativity option for baseline estimation
-defoptions.noise_range = [0.33,0.5];    % frequency range over which to estimate the noise
+defoptions.noise_range = [0.25,0.5];    % frequency range over which to estimate the noise
 defoptions.noise_method = 'logmexp';    % method for which to estimate the noise level
-defoptions.lags = 30;                    % number of extra lags when computing the AR coefficients
+defoptions.lags = 5;                    % number of extra lags when computing the AR coefficients
 defoptions.resparse = 0;                % number of times to re-sparse solution
-defoptions.fudge_factor = .99;            % fudge factor for time constants
+defoptions.fudge_factor = 1;            % fudge factor for time constants
 
 if nargin < 6
     options = defoptions;
@@ -102,11 +101,11 @@ if isempty(sn)
     sn = GetSn(y_full,options.noise_range,options.noise_method);
 end
 if isempty(g)
-    g = estimate_time_constants(y_full,options.p,sn,options.lags,fR);
+    g = estimate_time_constants(y_full,options.p,sn,options.lags);
     while max(abs(roots([1,-g(:)']))>1) && options.p < 5
         warning('No stable AR(%i) model found. Checking for AR(%i) model \n',options.p,options.p+1);
         options.p = options.p + 1;
-        g = estimate_time_constants(y,options.p,sn,options.lags,fR);
+        g = estimate_time_constants(y,options.p,sn,options.lags);
     end
     if options.p == 5
         g = 0;
@@ -170,15 +169,13 @@ switch method
     case 'cvx'
         onPath = ~isempty(which('cvx_begin'));
         if onPath
-            warning('off','MATLAB:nargchk:deprecated'),
             c = zeros(T,1+options.resparse);
             sp = zeros(T,1+options.resparse);
             bas = zeros(1+options.resparse,1);
             cin = zeros(1+options.resparse,1);
-            snScale = zeros(1+options.resparse,1);
             w_ = ones(T,1);
             for rep = 1:options.resparse+1
-                [c(:,rep),bas(rep),cin(rep),snScale(rep)] = cvx_foopsi(y,b,c1,sn,b_lb,g,w_,~mis_data);
+                [c(:,rep),bas(rep),cin(rep)] = cvx_foopsi(y,b,c1,sn,b_lb,g,w_,~mis_data);
                 sp(:,rep) = G*c(:,rep);                
                 w_ = 1./(max(sp(:,rep),0) + 1e-8);
             end
@@ -186,7 +183,6 @@ switch method
             c = G\sp;
             b = bas;
             c1 = cin;
-            warning('on','MATLAB:nargchk:deprecated'),
         else
             error('CVX does not appear to be on the MATLAB path. It can be downloaded from cvxr.com \n');
         end
@@ -237,7 +233,7 @@ end
             [psd_Y,ff]=pwelch(Y,round(L/8),[],1000,1);
         else
             xdft = fft(Y);
-            xdft = xdft(:,1:round(L/2)+1);
+            xdft = xdft(1:round(L/2)+1);
             psd_Y = (1/L) * abs(xdft).^2;
             ff = 0:1/L:1/2;
             psd_Y(2:end-1) = 2*psd_Y(2:end-1);
@@ -253,23 +249,30 @@ end
                 sn = sqrt(exp(mean(log(psd_Y(ind)/2))));
         end
     end
+
+    
+    function g = estimate_time_constants(y,p,sn,lags)
+        % estimate time constants from the sample autocovariance function
         
-%         function g = estimate_time_constants(y,p,sn,lags,nBinsAR)
-%         lags = lags + p;
-%         if ~isempty(which('xcov')) %signal processing toolbox
-%             xc = xcov(y,lags,'biased');
-%         else
-%             ynormed = (y - mean(y));
-%             xc = nan(lags + 1, 1);
-%             for k = 0:lags
-%                 xc(k + 1) = ynormed(1 + k:end)' * ynormed(1:end - k);
-%             end
-%             xc = [flipud(xc(2:end)); xc] / numel(y);
-%         end
-%         xc = xc(:);
-%         A = toeplitz(xc(lags+(1:lags)),xc(lags+(1:p))) - sn^2*eye(lags,p);
-%         g = pinv(A)*xc(lags+2:end);            
-%     end
+        lags = lags + p;
+        if ~isempty(which('xcov')) %signal processing toolbox
+            xc = xcov(y,lags,'biased');
+        else
+            ynormed = (y - mean(y));
+            xc = nan(lags + 1, 1);
+            for k = 0:lags
+                xc(k + 1) = ynormed(1 + k:end)' * ynormed(1:end - k);
+            end
+            xc = [flipud(xc(2:end)); xc] / numel(y);
+        end
+        xc = xc(:);
+        A = toeplitz(xc(lags+(1:lags)),xc(lags+(1:p))) - sn^2*eye(lags,p);
+        try 
+            g = pinv(A)*xc(lags+2:end);            
+        catch
+            g = 0;
+        end
+    end
 
     function [f,grad] = lagrangian_temporal_gradient(Al,thr,y_raw,bas_flag,c1_flag)
         options_qp = optimset('Display','Off','Algorithm','interior-point-convex');

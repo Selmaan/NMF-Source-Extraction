@@ -47,7 +47,8 @@ nb = size(f,1);     % number of background components
 
 step = 5e3;
 if memmaped
-    AY = zeros(K,T);
+    AY = zeros(K,T);  
+    d = size(A,1);
     for i = 1:step:d
         AY = AY + A(i:min(i+step-1,d),:)'*double(Y.Yr(i:min(i+step-1,d),:));
     end
@@ -65,7 +66,7 @@ end
 Y_r = (AY- (A'*A)*C - full(A'*double(b))*f) + C;
 
 if plot_df
-    [~,Df] = extract_DF_F(Y,[A,double(b)],[C;f],size(A,2)+1);
+    [~,Df] = extract_DF_F(Y,A,C,[],options);
 else
     Df = ones(size(A,2)+1,1);
 end
