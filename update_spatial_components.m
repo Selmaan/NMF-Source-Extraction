@@ -102,6 +102,7 @@ else
     options.sn = P.sn;
     Y_ds = Y;
     Cf_ds = Cf;
+    clear Y Cf
 end
 f_ds = Cf_ds(end-size(f,1)+1:end,:);
 
@@ -112,7 +113,7 @@ if strcmpi(options.spatial_method,'constrained');
         siz_row = [floor(d/Nthr)*ones(Nthr-mod(d,Nthr),1);(floor(d/Nthr)+1)*ones(mod(d,Nthr),1)];
         indeces = [0;cumsum(siz_row)];
         Yf = cell(Nthr,1);
-        A = spalloc(d,size(Cf,1),nnz(IND)+size(f,1)*d);
+        A = spalloc(d,size(Cf_ds,1),nnz(IND)+size(f,1)*d);
         for nthr = 1:Nthr     
             if memmaped
                 Ytemp = double(Y_ds.Yr(indeces(nthr)+1:indeces(nthr+1),:));
@@ -121,7 +122,7 @@ if strcmpi(options.spatial_method,'constrained');
             end
             sn_temp = options.sn(indeces(nthr)+1:indeces(nthr+1));
             IND_temp = IND(indeces(nthr)+1:indeces(nthr+1),:);
-            Atemp = spalloc(siz_row(nthr),size(Cf,1),nnz(IND_temp));
+            Atemp = spalloc(siz_row(nthr),size(Cf_ds,1),nnz(IND_temp));
             Yf{nthr} = Ytemp*f_ds'; 
             
             ind = cell(siz_row(nthr),1);
