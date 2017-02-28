@@ -1,4 +1,4 @@
-function [C,f,A] = pinv_temporal_components(acqObj,nSlice,A,b)
+function [C,f,A] = pinv_temporal_components(acqObj_data,nSlice,A,b)
 
 %% Eliminate empty ROIs
 emptyROIs = find(sum(A)==0);
@@ -10,34 +10,32 @@ end
 pA = pinv(full([A,b]));
 % pA = pinv_sparse([A,b]);
 %% 
-memMap = matfile(acqObj.indexedMovie.slice(nSlice).channel(1).memMap);
-imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
-nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel.size(:,3))/memMap.dsRatio;
+if ~isnumeric(acqObj_data)
+    memMap = matfile(acqObj_data.indexedMovie.slice(nSlice).channel(1).memMap);
+    imSize = acqObj_data.correctedMovies.slice(nSlice).channel.size(1,1:2);
+    nFrames = sum(acqObj_data.correctedMovies.slice(nSlice).channel.size(:,3))/memMap.dsRatio;
+    useMemMap = true;
+else
+    imSize = [size(acqObj_data,1),size(acqObj_data,2)];
+    nFrames = size(acqObj_data,3);
+    useMemMap = false;
+end
 step = 1000;
 frameBatches = 1:step:nFrames;
 frameBatches(2,:) = min(frameBatches(1,:) + step - 1, nFrames);
 traces = nan(size(A,2)+size(b,2), nFrames);
-% traces = cell(1,size(frameBatches,2));
-parfor_progress(size(frameBatches,2));
-% parfor frameBatch = 1:size(frameBatches,2)
+% parfor_progress(size(frameBatches,2));
 for frameBatch = 1:size(frameBatches,2)
     fInd = frameBatches(1,frameBatch):frameBatches(2,frameBatch);
-    tempY = memMap.Yr(:,fInd);
-    
-%     dMap = memmapfile(acqObj.indexedMovie.slice(nSlice).channel(1).fileName,...
-%         'Format', {'int16', [nFrames, prod(imSize)], 'mov'});
-%     mov = dMap.data.mov;
-%     tempY = double(mov(fInd,:)');
-%     tempY = reshape(tempY,imSize(2),imSize(1),length(fInd));
-%     tempY = permute(tempY,[2 1 3]);
-%     tempY = reshape(tempY,prod(imSize),length(fInd));
-%     clear mov
-%     clear dMap
-%     traces{frameBatch} = pA * tempY;
+    if useMemMap
+        tempY = memMap.Yr(:,fInd);
+    else
+        tempY = reshape(acqObj_data(:,:,fInd),prod(imSize),length(fInd));
+    end
     traces(:,fInd) = pA * tempY;
-    parfor_progress;
+%     parfor_progress;
 end
-parfor_progress(0);
+% parfor_progress(0);
 % traces = [traces{:}];
 
 %%
