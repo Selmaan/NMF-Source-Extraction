@@ -14,7 +14,11 @@ end
 Y = reshape(Y,size(Y,1)*size(Y,2),size(Y,3));
 
 %% Extract Factors and eliminate redundandant sources
-[w,t,nFactors] = NMF_SNC_Factors(Y,nFactors,initImages(yRange,xRange,:));
+if isempty(initImages)
+    [w,t] = NMF_SNC_Factors(Y,nFactors,initImages);
+else
+    [w,t,nFactors] = NMF_SNC_Factors(Y,nFactors,initImages(yRange,xRange,:));
+end
 b = w(:,nFactors+1);
 Ysub = Y - (b * t(nFactors+1,:));
 for s = 1:nFactors
