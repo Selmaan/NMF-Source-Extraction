@@ -1,4 +1,4 @@
-function extractSourcesNMF(acqObj,nSlice)
+function extractSourcesNMF(acqObj,nSlice,data,initImages)
 
 syncObj = acqObj.syncInfo;
 acqBlocks = [1 syncObj.sliceFrames(1,nSlice)];
@@ -7,30 +7,33 @@ for blockNum = 2:size(syncObj.sliceFrames,1)
         [1+syncObj.sliceFrames(blockNum-1,nSlice), syncObj.sliceFrames(blockNum,nSlice)];
 end
 
-imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
-nFrames = sum(acqObj.correctedMovies.slice(nSlice).channel.size(:,3));
-memMap = matfile(acqObj.indexedMovie.slice.channel.memMap);
-nFramesDS = size(memMap,'Y',3);
-% if acqObj.metaDataSI.SI.hFastZ.enable
-%     frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate...
-%         /acqObj.metaDataSI.SI.hFastZ.numFramesPerVolume);
-% else
-%     frameRate = round(acqObj.metaDataSI.SI.hRoiManager.scanFrameRate);
-% end
-% 
-% pAR = 1;                                            % order of autoregressive system (p = 0 no dynamics, p=1 just decay, p = 2, both rise and decay)
+memMap = matfile(acqObj.indexedMovie.slice.channel.memMap);  %useful to construct memmap even w/ data
+if isempty(data) %using memory map
+    imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
+    nFramesDS = size(memMap,'Y',3);
+else
+    imSize = [size(data,1),size(data,2)];
+    nFramesDS = size(data,3);
+end
 
 options = CNMFSetParms(...
     'd1',imSize(1),'d2',imSize(2),...
     'spatial_method','constrained',...
-    'search_method','dilate','se',strel('disk',1,0),...
+    'search_method','dilate','se',strel('square',3),...    %'se',strel('disk',2,0),...
     'deconv_method','constrained_foopsi',...    % activity deconvolution method
     'merge_thr',0.8,...                    % merging threshold
     'nB',3,...
     'thr_method','nrg',...
-    'nrgthr',0.999,...
+    'nrgthr',0.99,...
     'clos_op',strel('square',1),...
     'medw',[1 1]);
+
+% Use a separate options structure for when thresholding/postprocessing is
+% desired, as opposed to when it's automatically called by spatial updates
+optionsThresh = options;
+optionsThresh.medw = [3 3];
+optionsThresh.clos_op = strel('square',3);
+optionsThresh.nrgthr = 0.95;
 
 %% Get Patches Results
 patch_size = [52,52];                   % size of each patch along each dimension (optional, default: [32,32])
@@ -38,18 +41,21 @@ overlap = [6,6];                        % amount of overlap in each dimension (o
 nFactors = 15;
 patches = construct_patches(imSize,patch_size,overlap);
 
-parfor_progress(length(patches));
-parfor_progress;
-RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors);
-% delete(gcp('nocreate'));
-% p = parpool(3);
-parfor patchNum = 2:length(patches)
-    parfor_progress;
-    RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors);
+% parfor_progress(length(patches));
+% parfor_progress;
+fprintf('Initializing patches...');
+if isempty(data) %memory mapped
+    RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,initImages);
+    parfor patchNum = 2:length(patches)
+    %     parfor_progress;
+        RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,initImages);
+    end
+else
+    for patchNum = 1:length(patches)
+        RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors,initImages);
+    end
 end
-% parfor_progress(0);
-% delete(p);
-
+fprintf(' done. \n');
 %% combine results into one structure
 fprintf('Combining results from different patches...');
 C = double(cell2mat({RESULTS(:).C}'));
@@ -89,14 +95,15 @@ clear RESULTS
 
 %% load subset of high temporal resolution data to get imaging noise
 minNoisePrctile = 5;
-nMovs = 10;
+nMovs = 15;
 movNums = round(linspace(2,length(acqObj.correctedMovies.slice.channel.fileName)-1,nMovs));
+allSN = nan(512^2,nMovs);
 for nMov = 1:nMovs
     tempMov = single(readCor(acqObj,movNums(nMov)));
-    P = preprocess_data(tempMov);
-    Ps(nMov) = P;
+    thisSN = get_noise_fft(tempMov,options);
+    allSN(:,nMov) = thisSN(:);    
 end
-sn = mean(double(cat(2,Ps.sn)),2);
+sn = mean(allSN,2);
 clear P
 P.snRaw = sn;
 % Enforce minimum noise
@@ -114,16 +121,16 @@ if ~isempty(emptyROIs)
 end
 
 f1 = nanmedian(F);
-fStd = std(f1);
 fSplit(1,:) = medfilt1(f1,1e3,'truncate');
 fSplit(2,:) = f1-fSplit(1,:);
 fBase = prctile(fSplit(2,:),10);
 fSplit(1,:) = fSplit(1,:)+fBase;
 fSplit(2,:) = fSplit(2,:)-fBase;
-f(1,:) = fSplit(1,:).*linspace(0,1,length(f1));
-f(2,:) = fSplit(1,:).*linspace(1,0,length(f1));
+f(1,:) = fSplit(1,:).*linspace(1,0,length(f1));
+f(2,:) = fSplit(1,:).*linspace(0,1,length(f1));
 f(3,:) = fSplit(2,:);
 % bReps = options.nb/2;
+% fStd = std(f1);
 % f(1:bReps,:) = repmat(fSplit(1,:),bReps,1) + fStd*1/2*randn(bReps,size(fSplit,2));
 % f(1+bReps:options.nb,:) = repmat(fSplit(2,:),bReps,1) + fStd*1/2*randn(bReps,size(fSplit,2));
 
@@ -157,29 +164,29 @@ P.neuron_sn = cell(numRetain,1);
 %% First pass to clean up initialization
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,acqBlocks,memMap,nSlice);
+    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
 
-%% Enforce robustness with noise inflation
-noiseTolerance = 1.1;
+%% Enforce robustness with noise inflation and component thresholding
+noiseTolerance = 1.05;
 P.sn = P.snDS * noiseTolerance;
-[A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,acqBlocks,memMap,nSlice);
+[A,b,C,f,P,optionsThresh] = updateCNMF_all...
+    (A,C,f,P,optionsThresh,acqObj,data,acqBlocks,memMap,nSlice);
 
 %% Clean up robust results
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,acqBlocks,memMap,nSlice);
+    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
 
 %% Save Results
 
-saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170227.mat',nSlice));
+saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170228.mat',nSlice));
 acqObj.roiInfo.slice(nSlice).NMF.filename = saveFile;
-save(saveFile,'A','b','C','f','P','options'),
+save(saveFile,'A','b','C','f','P','options','optionsThresh'),
 
 end
 
 function [A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,acqBlocks,memMap,nSlice)
+    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice)
 
 % Remove Source Baseline and neuropil (rough estimate w robust fit)
 % This is just to help background + neuropil signals be absorbed into the
@@ -225,7 +232,11 @@ f = f * scaleFactor;
 
 fprintf('Updating spatial components...');
 pctRunOnAll warning('off','MATLAB:nargchk:deprecated'),
-[A,b,C] = update_spatial_components(memMap,C,f,A,P,options);
+if ~isempty(data) %data in memory
+    [A,b,C] = update_spatial_components(reshape(data,size(A,1),size(C,2)),C,f,A,P,options);
+else %memMapped
+    [A,b,C] = update_spatial_components(memMap,C,f,A,P,options);
+end
 fprintf(' done. \n');
 
 % Re-normalize spatial components
@@ -235,7 +246,11 @@ A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
 b = bsxfun(@rdivide,b,sqrt(sum(b.^2)))*size(A,2);
 
 fprintf('Updating temporal components... (1)')
-[C,f,A] = pinv_temporal_components(acqObj,nSlice,A,b);
+if ~isempty(data)
+    [C,f,A] = pinv_temporal_components(data,nSlice,A,b);
+else
+    [C,f,A] = pinv_temporal_components(acqObj,nSlice,A,b);
+end
 fprintf(' done. \n');
 
 fprintf('Merging overlaping components... (1)')
