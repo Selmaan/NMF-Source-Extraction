@@ -1,14 +1,20 @@
-function result = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors)
+function result = patchInitNMF(acqObj_data,nSlice,patches,patchNum,nFactors,initImages)
 
 %% Setup and Data
 result = struct();
 
-memMap = matfile(acqObj.indexedMovie.slice(nSlice).channel(1).memMap);
-Y = memMap.Y(patches{patchNum}(1):patches{patchNum}(2),patches{patchNum}(3):patches{patchNum}(4),:);
+yRange = patches{patchNum}(1):patches{patchNum}(2);
+xRange = patches{patchNum}(3):patches{patchNum}(4);
+if isnumeric(acqObj_data) %Data loaded in memory
+    Y = acqObj_data(yRange,xRange,:);
+else % Using memory map
+    memMap = matfile(acqObj_data.indexedMovie.slice(nSlice).channel(1).memMap);
+    Y = memMap.Y(yRange,xRange,:);
+end
 Y = reshape(Y,size(Y,1)*size(Y,2),size(Y,3));
 
 %% Extract Factors and eliminate redundandant sources
-[w,t] = NMF_SNC_Factors(Y,nFactors);
+[w,t,nFactors] = NMF_SNC_Factors(Y,nFactors,initImages(yRange,xRange,:));
 b = w(:,nFactors+1);
 Ysub = Y - (b * t(nFactors+1,:));
 for s = 1:nFactors
