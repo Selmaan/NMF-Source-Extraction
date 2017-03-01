@@ -38,21 +38,32 @@ optionsThresh.nrgthr = 0.95;
 %% Get Patches Results
 patch_size = [52,52];                   % size of each patch along each dimension (optional, default: [32,32])
 overlap = [6,6];                        % amount of overlap in each dimension (optional, default: [4,4])
-nFactors = 15;
+nFactors = 12;
 patches = construct_patches(imSize,patch_size,overlap);
 
 % parfor_progress(length(patches));
 % parfor_progress;
 fprintf('Initializing patches...');
+% if isempty(data) %memory mapped
+%     RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,initImages);
+%     parfor patchNum = 2:length(patches)
+%     %     parfor_progress;
+%         RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,initImages);
+%     end
+% else
+%     for patchNum = 1:length(patches)
+%         RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors,initImages);
+%     end
+% end
 if isempty(data) %memory mapped
-    RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,initImages);
+    RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors);
     parfor patchNum = 2:length(patches)
     %     parfor_progress;
-        RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,initImages);
+        RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors);
     end
 else
     for patchNum = 1:length(patches)
-        RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors,initImages);
+        RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors);
     end
 end
 fprintf(' done. \n');
@@ -91,7 +102,7 @@ B = spdiags(1./MASK(:),0,prod(imSize),prod(imSize))*B;
 % F(F<0) = 0;
 
 fprintf(' done. \n');
-clear RESULTS
+% clear RESULTS
 
 %% load subset of high temporal resolution data to get imaging noise
 minNoisePrctile = 5;
@@ -161,18 +172,34 @@ P.c1 = cell(numRetain,1);
 P.gn = cell(numRetain,1);
 P.neuron_sn = cell(numRetain,1);
 
-%% First pass to clean up initialization
+%% Add initImages as Sources
+
+if ~isempty(initImages)
+    fprintf('Adding initImages to Source Initialization...'),
+    % Add initImages to source matrix
+    A = cat(2,A,sparse(reshape(initImages,prod(imSize),size(initImages,3))));
+    % Normalize spatial components
+    A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
+    b = bsxfun(@rdivide,b,sqrt(sum(b.^2)))*size(A,2);
+    if ~isempty(data)
+        [C,f,A] = pinv_temporal_components(data,nSlice,A,b);
+    else
+        [C,f,A] = pinv_temporal_components(acqObj,nSlice,A,b);
+    end
+    fprintf(' done. \n');
+end
+%% First pass to clean up initialization, use component thresholding
 P.sn = P.snDS;
-[A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
+[A,b,C,f,P,optionsThresh] = updateCNMF_all...
+    (A,C,f,P,optionsThresh,acqObj,data,acqBlocks,memMap,nSlice);
 
 %% Enforce robustness with noise inflation and component thresholding
-noiseTolerance = 1.05;
+noiseTolerance = 1.1;
 P.sn = P.snDS * noiseTolerance;
 [A,b,C,f,P,optionsThresh] = updateCNMF_all...
     (A,C,f,P,optionsThresh,acqObj,data,acqBlocks,memMap,nSlice);
 
-%% Clean up robust results
+%% Clean up robust results, no thresholding/smoothing of components
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
     (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
