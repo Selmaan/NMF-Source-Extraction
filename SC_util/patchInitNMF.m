@@ -1,5 +1,9 @@
 function result = patchInitNMF(acqObj_data,nSlice,patches,patchNum,nFactors,initImages)
 
+if ~exist('initImages','var')
+    initImages = [];
+end
+
 %% Setup and Data
 result = struct();
 
