@@ -19,7 +19,7 @@ end
 options = CNMFSetParms(...
     'd1',imSize(1),'d2',imSize(2),...
     'spatial_method','constrained',...
-    'search_method','dilate','se',strel('square',3),...    %'se',strel('disk',2,0),...
+    'search_method','dilate','se',strel('disk',2,0),...
     'deconv_method','constrained_foopsi',...    % activity deconvolution method
     'merge_thr',0.8,...                    % merging threshold
     'nB',3,...
@@ -44,6 +44,8 @@ patches = construct_patches(imSize,patch_size,overlap);
 % parfor_progress(length(patches));
 % parfor_progress;
 fprintf('Initializing patches...');
+
+% Commented out code uses initImages during initialization phase
 % if isempty(data) %memory mapped
 %     RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,initImages);
 %     parfor patchNum = 2:length(patches)
@@ -55,6 +57,8 @@ fprintf('Initializing patches...');
 %         RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors,initImages);
 %     end
 % end
+
+% Code used here does not use initImages, it'll be added after initialization
 if isempty(data) %memory mapped
     RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors);
     parfor patchNum = 2:length(patches)
@@ -167,10 +171,6 @@ end
 numRetain = ceil(fracRetain*size(A,2));
 A = A(:,1:numRetain);
 C = C(1:numRetain,:);
-P.b = cell(numRetain,1);
-P.c1 = cell(numRetain,1);
-P.gn = cell(numRetain,1);
-P.neuron_sn = cell(numRetain,1);
 
 %% Add initImages as Sources
 
@@ -180,26 +180,43 @@ if ~isempty(initImages)
     A = cat(2,A,sparse(reshape(initImages,prod(imSize),size(initImages,3))));
     % Normalize spatial components
     A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
-    b = bsxfun(@rdivide,b,sqrt(sum(b.^2)))*size(A,2);
+    % use temporary meanRef as background (note, do NOT replace f)
+    b = reshape(meanRef(acqObj),prod(imSize),1);
+    b = size(A,2).*b./sqrt(sum(b.^2));
     if ~isempty(data)
-        [C,f,A] = pinv_temporal_components(data,nSlice,A,b);
+        [C,~,A] = pinv_temporal_components(data,nSlice,A,b);
     else
-        [C,f,A] = pinv_temporal_components(acqObj,nSlice,A,b);
+        [C,~,A] = pinv_temporal_components(acqObj,nSlice,A,b);
     end
     fprintf(' done. \n');
 end
-%% First pass to clean up initialization, use component thresholding
-P.sn = P.snDS;
-[A,b,C,f,P,optionsThresh] = updateCNMF_all...
-    (A,C,f,P,optionsThresh,acqObj,data,acqBlocks,memMap,nSlice);
 
-%% Enforce robustness with noise inflation and component thresholding
+%% Initialize dummy variables
+nSources = size(A,2);
+P.b = cell(nSources,1);
+P.c1 = cell(nSources,1);
+P.gn = cell(nSources,1);
+P.neuron_sn = cell(nSources,1);
+
+% label initImage sources, hacky solution here
+if ~isempty(initImages)
+    for i = 1:size(initImages,3)
+        sourceInd = i - size(initImages,3) + nSources;
+        P.b{sourceInd} = inf;
+    end
+end 
+%% First pass to clean up initialization
+P.sn = P.snDS;
+[A,b,C,f,P,options] = updateCNMF_all...
+    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
+
+%% Enforce robustness with noise inflation
 noiseTolerance = 1.1;
 P.sn = P.snDS * noiseTolerance;
-[A,b,C,f,P,optionsThresh] = updateCNMF_all...
-    (A,C,f,P,optionsThresh,acqObj,data,acqBlocks,memMap,nSlice);
+[A,b,C,f,P,options] = updateCNMF_all...
+    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
 
-%% Clean up robust results, no thresholding/smoothing of components
+%% Clean up robust results
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
     (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
@@ -236,8 +253,8 @@ binSize = 500 / memMap.dsRatio;
 basePrct = 2;
 
 for nAcq = 1:size(acqBlocks,1)
-    thisBlock = ceil(acqBlocks(nAcq,:)/ memMap.dsRatio);
-    acqInd = thisBlock(1):thisBlock(2);
+    thisBlock = acqBlocks(nAcq,:);
+    acqInd = ceil(thisBlock(1)/ memMap.dsRatio):floor(thisBlock(2)/ memMap.dsRatio);
     parfor nSource = 1:size(C,1)
         C(nSource,acqInd) = removeSourceBaseline(C(nSource,acqInd),binSize,basePrct);
     end
