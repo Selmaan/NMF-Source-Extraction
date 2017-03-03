@@ -13,13 +13,16 @@ pA = pinv(full([A,b]));
 if ~isnumeric(acqObj_data)
     memMap = matfile(acqObj_data.indexedMovie.slice(nSlice).channel(1).memMap);
     imSize = acqObj_data.correctedMovies.slice(nSlice).channel.size(1,1:2);
-    nFrames = sum(acqObj_data.correctedMovies.slice(nSlice).channel.size(:,3))/memMap.dsRatio;
+    nFrames = size(memMap,'Y',3);
+    ref = reshape(meanRef(acqObj_data),prod(imSize),1);
     useMemMap = true;
 else
     imSize = [size(acqObj_data,1),size(acqObj_data,2)];
     nFrames = size(acqObj_data,3);
+    ref = reshape(nanmean(acqObj_data,3),prod(imSize),1);
     useMemMap = false;
 end
+ref(~isfinite(ref)) = nanmean(ref);
 step = 1000;
 frameBatches = 1:step:nFrames;
 frameBatches(2,:) = min(frameBatches(1,:) + step - 1, nFrames);
@@ -32,6 +35,14 @@ for frameBatch = 1:size(frameBatches,2)
     else
         tempY = reshape(acqObj_data(:,:,fInd),prod(imSize),length(fInd));
     end
+    if sum(~isfinite(tempY(:)))
+        replaceFrames = find(sum(~isfinite(tempY),1)>0);
+        for nFrame = replaceFrames
+            replacePix = ~isfinite(tempY(:,nFrame));
+            tempY(replacePix,nFrame) = ref(replacePix);
+        end
+    end
+    
     traces(:,fInd) = pA * tempY;
 %     parfor_progress;
 end
