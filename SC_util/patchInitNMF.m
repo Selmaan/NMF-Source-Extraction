@@ -16,6 +16,7 @@ else % Using memory map
     Y = memMap.Y(yRange,xRange,:);
 end
 Y = reshape(Y,size(Y,1)*size(Y,2),size(Y,3));
+Y(~isfinite(Y)) = nanmean(Y(:));
 
 %% Extract Factors and eliminate redundandant sources
 if isempty(initImages)
