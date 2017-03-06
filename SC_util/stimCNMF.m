@@ -52,15 +52,20 @@ end
 
 %% Load Dataset into memory and create mean images
 fprintf('Loading down-sampled data into memory...'),
+% minStimFrame = min(cat(1,allStim{:}))-5;
+% maxStimFrame = max(cat(1,allStim{:}))+5;
 Y = memMap.Yr;
+% Y = memMap.Yr(:,minStimFrame:maxStimFrame);
 fprintf('Done! \n'),
 
 allStimIm = nan(512^2,nTargs);
 for nTarg = 1:nTargs
     s1f = allStim{nTarg};
+%     s1f = allStim{nTarg}-minStimFrame+1;
     allStimIm(:,nTarg) = mean(Y(:,[s1f; s1f+1]),2)-mean(Y(:,[s1f-1; s1f-2]),2);
 end
 allStimIm = reshape(allStimIm,512,512,length(allStim));
+% clear Y,
 %% Get Scanfield and Target Coordinates
 [hRoiGroup,stimGroups] = scanimage.util.readTiffRoiData(stimExpt.resFns{find(stimExpt.stimBlocks,1)});
 scanfield = hRoiGroup.rois(1).scanfields(1);
@@ -88,5 +93,8 @@ stimExpt.rawStimIm = allStimIm;
 stimExpt.procStimIm = winStimIm;
 
 %% Extract Sources w/ avgStim Image initializations
+acqObj.syncInfo.stimExpt = stimExpt;
 acqObj.extractSources(1,reshape(Y,512,512,size(Y,2)),winStimIm),
-
+clear Y,
+% acqObj.extractSources(1,[],winStimIm),
+update_temporal_components_fromTiff(acqObj);
