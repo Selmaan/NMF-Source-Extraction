@@ -7,7 +7,7 @@ for blockNum = 2:size(syncObj.sliceFrames,1)
         [1+syncObj.sliceFrames(blockNum-1,nSlice), syncObj.sliceFrames(blockNum,nSlice)];
 end
 
-memMap = matfile(acqObj.indexedMovie.slice.channel.memMap);  %useful to construct memmap even w/ data
+memMap = matfile(acqObj.indexedMovie.slice(nSlice).channel.memMap);  %useful to construct memmap even w/ data
 if isempty(data) %using memory map
     imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
     nFramesDS = size(memMap,'Y',3);
@@ -183,6 +183,9 @@ if ~isempty(initImages)
     % use temporary meanRef as background (note, do NOT replace f)
     b = reshape(meanRef(acqObj),prod(imSize),1);
     b = size(A,2).*b./sqrt(sum(b.^2));
+    % Ensure components are finite
+    A(~isfinite(A)) = 0;
+    b(~isfinite(b)) = 0;
     if ~isempty(data)
         [C,~,A] = pinv_temporal_components(data,nSlice,A,b);
     else
@@ -202,9 +205,31 @@ P.neuron_sn = cell(nSources,1);
 if ~isempty(initImages)
     for i = 1:size(initImages,3)
         sourceInd = i - size(initImages,3) + nSources;
-        P.b{sourceInd} = inf;
+        P.b{sourceInd} = i;
     end
 end 
+
+%% Baseline and normalize traces
+
+binSize = 500 / memMap.dsRatio;
+basePrct = 2;
+
+for nAcq = 1:size(acqBlocks,1)
+    thisBlock = acqBlocks(nAcq,:);
+    acqInd = ceil(thisBlock(1)/ memMap.dsRatio):floor(thisBlock(2)/ memMap.dsRatio);
+    parfor nSource = 1:size(C,1)
+        C(nSource,acqInd) = removeSourceBaseline(C(nSource,acqInd),binSize,basePrct);
+    end
+end
+
+C(C<0) = 0;
+cNorm = sqrt(sum(C.^2,2));
+C = bsxfun(@rdivide,C,cNorm);
+fNorm = sqrt(sum(f.^2,2));
+f = bsxfun(@rdivide,f,fNorm);
+scaleFactor = 1e3;
+f = f * scaleFactor;
+
 %% First pass to clean up initialization
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
@@ -217,13 +242,21 @@ P.sn = P.snDS * noiseTolerance;
     (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
 
 %% Clean up robust results
+
+cNorm = sqrt(sum(C.^2,2));
+C = bsxfun(@rdivide,C,cNorm);
+fNorm = sqrt(sum(f.^2,2));
+f = bsxfun(@rdivide,f,fNorm);
+scaleFactor = 1e3;
+f = f * scaleFactor;
+
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
     (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
 
 %% Save Results
 
-saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170228.mat',nSlice));
+saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170306.mat',nSlice));
 acqObj.roiInfo.slice(nSlice).NMF.filename = saveFile;
 save(saveFile,'A','b','C','f','P','options','optionsThresh'),
 
@@ -231,6 +264,50 @@ end
 
 function [A,b,C,f,P,options] = updateCNMF_all...
     (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice)
+
+fprintf('Updating spatial components...');
+pctRunOnAll warning('off','MATLAB:nargchk:deprecated'),
+if ~isempty(data) %data in memory
+    [A,b,C] = update_spatial_components(reshape(data,size(A,1),size(C,2)),C,f,A,P,options);
+else %memMapped
+    [A,b,C] = update_spatial_components(memMap,C,f,A,P,options);
+end
+fprintf(' done. \n');
+
+fprintf('Updating temporal components... (1)'),
+if ~isempty(data)
+    [C,f] = coDesc_temporal_components(data,nSlice,A,b,C,f);
+else
+    [C,f] = coDesc_temporal_components(acqObj,nSlice,A,b,C,f);
+end
+fprintf(' done. \n'),
+
+% % Re-normalize spatial components
+% A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
+% % scale b as well? maybe not, since it is supposed to be much bigger
+% % compromise might be scale b so its larger by factor of nSources 
+% b = bsxfun(@rdivide,b,sqrt(sum(b.^2)))*size(A,2);
+
+% fprintf('Updating temporal components... (1)')
+% if ~isempty(data)
+%     [C,f,A] = pinv_temporal_components(data,nSlice,A,b);
+% else
+%     [C,f,A] = pinv_temporal_components(acqObj,nSlice,A,b);
+% end
+% fprintf(' done. \n');
+
+fprintf('Merging overlaping components... (1)')
+Km = 0;
+Kn = size(A,2);
+while Km < Kn
+    Kn = size(A,2);
+    [A,C,~,~,P] = merge_components([],A,b,C,f,P,C,options);
+    Km = size(A,2),
+end
+fprintf(' done. \n');
+
+end
+
 
 % Remove Source Baseline and neuropil (rough estimate w robust fit)
 % This is just to help background + neuropil signals be absorbed into the
@@ -247,64 +324,3 @@ function [A,b,C,f,P,options] = updateCNMF_all...
 %     end
 % end
 % warning(warnState);
-
-% Baseline Traces
-binSize = 500 / memMap.dsRatio;
-basePrct = 2;
-
-for nAcq = 1:size(acqBlocks,1)
-    thisBlock = acqBlocks(nAcq,:);
-    acqInd = ceil(thisBlock(1)/ memMap.dsRatio):floor(thisBlock(2)/ memMap.dsRatio);
-    parfor nSource = 1:size(C,1)
-        C(nSource,acqInd) = removeSourceBaseline(C(nSource,acqInd),binSize,basePrct);
-    end
-end
-
-% Set negative values of C to 0 and rescale C + f
-% Rescale because the original lars problem for each pixel minimizes the
-% total weight over all sources including background! Don't want to
-% penalize the background weight dramatically. This 'shrunk' estimate for
-% the background is replaced by OLS at end of algorithm. Making f 'large'
-% makes weights on 'b' effectively free
-C(C<0) = 0;
-cNorm = sqrt(sum(C.^2,2));
-C = bsxfun(@rdivide,C,cNorm);
-fNorm = sqrt(sum(f.^2,2));
-f = bsxfun(@rdivide,f,fNorm);
-scaleFactor = 1e3;
-f = f * scaleFactor;
-
-fprintf('Updating spatial components...');
-pctRunOnAll warning('off','MATLAB:nargchk:deprecated'),
-if ~isempty(data) %data in memory
-    [A,b,C] = update_spatial_components(reshape(data,size(A,1),size(C,2)),C,f,A,P,options);
-else %memMapped
-    [A,b,C] = update_spatial_components(memMap,C,f,A,P,options);
-end
-fprintf(' done. \n');
-
-% Re-normalize spatial components
-A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
-% scale b as well? maybe not, since it is supposed to be much bigger
-% compromise might be scale b so its larger by factor of nSources 
-b = bsxfun(@rdivide,b,sqrt(sum(b.^2)))*size(A,2);
-
-fprintf('Updating temporal components... (1)')
-if ~isempty(data)
-    [C,f,A] = pinv_temporal_components(data,nSlice,A,b);
-else
-    [C,f,A] = pinv_temporal_components(acqObj,nSlice,A,b);
-end
-fprintf(' done. \n');
-
-fprintf('Merging overlaping components... (1)')
-Km = 0;
-Kn = size(A,2);
-while Km < Kn
-    Kn = size(A,2);
-    [A,C,~,~,P] = merge_components([],A,b,C,f,P,C,options);
-    Km = size(A,2),
-end
-fprintf(' done. \n');
-
-end
