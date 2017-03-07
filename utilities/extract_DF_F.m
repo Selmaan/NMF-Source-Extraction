@@ -1,11 +1,11 @@
-function [C_df,Df] = extract_DF_F(Y,A,C,ind,options)
+function [C_df,Df] = extract_DF_F(Y,A,C,P,options)
 
 % extract DF/F signals after performing NMF
 % inputs:  Y raw data (d X T matrix, d # number of pixels, T # of timesteps)
 %          A matrix of spatial components (d x K matrix, K # of components)
 %          C matrix of temporal components (K x T matrix)
-%          ind index of component that represent the background (optional, if not
-%          given it's estimated)
+%          P neuron structure, used to read the baseline activity for each
+%                    component of C
 %          options structure used for specifying method for determining DF
 %           default method is the median of the trace. By changing
 %           options.df_prctile an arbitray percentile can be used (between 0 and 100).
@@ -15,9 +15,9 @@ function [C_df,Df] = extract_DF_F(Y,A,C,ind,options)
 %           Df   background for each component to normalize the filtered raw data    
 
 % Written by: 
-% Eftychios A. Pnevmatikakis, Simons Foundation, 2015
+% Eftychios A. Pnevmatikakis, Simons Foundation, 2016
 
-memmaped = isobject(Y);
+%memmaped = isobject(Y);
 defoptions = CNMFSetParms;
 if nargin < 5 || isempty(options)
     options = defoptions;
@@ -30,62 +30,73 @@ if ~isfield(options,'df_window') || isempty(options.df_window)
 end
 if ~isfield(options,'full_A') || isempty(options.full_A); full_A = defoptions.full_A; else full_A = options.full_A; end
 
-nA = sqrt(sum(A.^2))';
 [K,T] = size(C);
-d = size(A,1);
-A = A/spdiags(nA,0,K,K);    % normalize spatial components to unit energy
-C = spdiags(nA,0,K,K)*C;
 
-if nargin < 4 || isempty(ind)
-    [~,ind] = min(sum(A.^6)); % identify background component
-end
+% step = 5e3;
+% if memmaped
+%     AY = zeros(K,T);
+%     d = size(A,1);
+%     for i = 1:step:d
+%         AY = AY + A(i:min(i+step-1,d),:)'*double(Y.Yr(i:min(i+step-1,d),:));
+%     end
+% else
+%     if issparse(A) && isa(Y,'single')  
+%         if full_A
+%             AY = full(A)'*Y;
+%         else
+%             AY = A'*double(Y);
+%         end
+%     else
+%         AY = A'*Y;
+%     end
+% end
 
-non_bg = true(1,K); 
-non_bg(ind) = false;      % non-background components
+AY = mm_fun(A,Y);
 
-step = 5e3;
-if memmaped
-    AY = zeros(K,T);
-    for i = 1:step:d
-        AY = AY + A(i:min(i+step-1,d),:)'*double(Y.Yr(i:min(i+step-1,d),:));
-    end
-else
-    if issparse(A) && isa(Y,'single')  
-        if full_A
-            AY = bsxfun(@times,full(A)'*Y,1./nA(:));
-        else
-            AY = spdiags(nA(:),0,length(nA),length(nA))\(A'*double(Y));
+Bas = zeros(K,T);
+
+if ~(nargin < 5 || isempty(P))
+    bas_val = cell2mat(P.b);
+    Ntr = size(bas_val,2);
+    if Ntr > 1
+        ln = diff(P.cs_frtrs);
+        for i = 1:Ntr
+            Bas(:,:,P.cs_frtrs(i)+1:P.cs_frtrs(i+1)) = repmat(bas_val(:,i),1,ln(i));
         end
     else
-        AY = spdiags(nA(:),0,length(nA),length(nA))\(A'*Y);
+        Bas = repmat(bas_val,1,T);
     end
 end
 
-Yf = AY - (A'*A(:,non_bg))*C(non_bg,:);
+nA = sqrt(sum(A.^2))';
+AA = A'*A;
+AA(1:K+1:end) = 0;
+
+Cf = bsxfun(@times,C - Bas,nA(:).^2);
+
+C2 = AY - AA*C;
 
 if isempty(options.df_window) || (options.df_window > size(C,2))
     if options.df_prctile == 50
-        Df = median(Yf,2);
+        Df = median(C2,2);
     else
-        Df = prctile(Yf,options.df_prctile,2);
+        Df = prctile(C2,options.df_prctile,2);
     end
-    C_df = spdiags(Df,0,K,K)\C;
+    C_df = bsxfun(@times,Cf,1./Df(:));
 else
     if options.df_prctile == 50
         if verLessThan('matlab','2015b')
             warning('Median filtering at the boundaries might be inaccurate due to zero padding.')
-            Df = medfilt1(Yf,options.df_window,[],2);
+            Df = medfilt1(C2,options.df_window,[],2);
         else
-            Df = medfilt1(Yf,options.df_window,[],2,'truncate');
+            Df = medfilt1(C2,options.df_window,[],2,'truncate');
         end
     else
-        Df = zeros(size(Yf));
+        Df = zeros(size(C2));
         for i = 1:size(Df,1);
-            df_temp = running_percentile(Yf(i,:), options.df_window, options.df_prctile);
+            df_temp = running_percentile(C2(i,:), options.df_window, options.df_prctile);
             Df(i,:) = df_temp(:)';
         end
     end
-    C_df = C./Df;
-end
-            
-C_df(ind,:) = []; % 0; % FN modified so C_df does not include the background components and it has the same size as C.
+    C_df = Cf./Df;
+end           

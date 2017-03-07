@@ -1,4 +1,4 @@
-function [w,t] = NMF_SNC_Factors(Yvec,nFactorsInit)
+function [w,t,nFactorsInit] = NMF_SNC_Factors(Yvec,nFactorsInit,initImages)
 
 %% get corrmat
 corrMat =corrcoef(Yvec');
@@ -26,6 +26,30 @@ while ~converged && its<maxIts
     converged = mean(abs(wSym0(:)-wSym(:)))<convThresh;
 end
 
+%% Add factors from images
+
+if ~isempty(initImages)
+    useIm = zeros(size(initImages,3),1);
+    for nImg = 1:size(initImages,3)
+        tmpImg = medfilt2(initImages(:,:,nImg),[5 5]);
+        tmpImg = bwareafilt(tmpImg>0,1);
+        if bwarea(tmpImg) > 30
+            useIm(nImg) = 1;
+        else
+            useIm(nImg) = 0;
+        end
+    end
+    
+    if sum(useIm)>0
+        imgVec = reshape(initImages,size(w,1),size(initImages,3));
+        w = [w(:,1:nFactorsInit),imgVec(:,find(useIm)),w(:,nFactorsInit+1)];
+        nFactorsInit = nFactorsInit + sum(useIm);
+    end
+end
+
+% Normalize w
+w = bsxfun(@rdivide,w,sqrt(sum(w.^2)));
+w(~isfinite(w)) = 0;
 %% Refine Factors
 t = pinv(w)*Yvec;
 its = 0;

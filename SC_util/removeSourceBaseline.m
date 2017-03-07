@@ -1,7 +1,5 @@
-function [fSub, f_] = removeSourceBaseline(f)
+function [fSub, f_] = removeSourceBaseline(f,binSize,basePrct)
 
-binSize = 500;
-basePrct = 2;
 nF = numel(f);
 fOrig = f;
 f(nF+1-rem(nF,binSize):end)=[];

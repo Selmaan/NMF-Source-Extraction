@@ -15,6 +15,7 @@ Names = [
     'ssub               ' % spatial downsampling factor (default: 1)
     'tsub               ' % temporal downsampling factor (default: 1)
     'init_method        ' % initialization method ('greedy','greedy_corr','sparse_NMF','HALS') (default: 'greedy')
+    'rem_prct           ' % percentile to be removed before initialization (default: 20)
     'noise_norm         ' % normalization by noise estimate prior to initialization (default: true)
     'noise_norm_prctile ' % minimum noise level (as percentile of P.sn) used in the normalization prior to initialization (default: 2)
     % greedy_corr parameters (greedyROI_corr.m)
@@ -49,18 +50,25 @@ Names = [
     'split_data         ' % split data into patches for memory reasons (default: 0)
     'block_size         ' % block size for estimating noise std in patches (default: [64,64])
     'cluster_pixels     ' % cluster pixels to active/inactive based on the PSD density (default: false)
+    'extract_max        ' % extract the maximum activity intervals for each pixel (default: false)
+    'max_nlocs          ' % number of local maxima to be extracted (default: 10)
+    'max_width          ' % length of each interval (default: 11)
     % UPDATING SPATIAL COMPONENTS (unpdate_spatial_components.m)
+    'spatial_method     ' % method for updating spatial components 'constrained' or 'regularized' (default: 'regularized')
     'search_method      ' % method for determining footprint of spatial components 'ellipse' or 'dilate' (default: 'dilate')
-    'use_parallel       ' % update pixels in parallel (default: 1 if present)
+    'spatial_parallel   ' % update pixels in parallel (default: 1 if present)
     % determine_search_location.m
     'min_size           ' % minimum size of ellipse axis (default: 3)
     'max_size           ' % maximum size of ellipse axis (default: 8)
     'dist               ' % expansion factor of ellipse (default: 3)
     'se                 ' % morphological element for dilation (default: strel('disk',4,0))
     % threshold_components.m
-    'nrgthr             ' % energy threshold (default: 0.9999)
+    'thr_method         ' % method to threshold ('max' or 'nrg', default 'max')
+    'maxthr             ' % threshold of max value below which values are discarded (default: 0.1)
+    'nrgthr             ' % energy threshold (default: 0.995)
     'clos_op            ' % morphological element for closing (default: strel('square',3))
     'medw               ' % size of median filter (default: [3,3])
+    'conn_comp          ' % extract largest connected component (binary, default: true)
     % UPDATING TEMPORAL COMPONENTS (update_temporal_components.m)
     'deconv_method      '    % method for spike deconvolution (default: 'constrained_foopsi')
     'restimate_g        '    % flag for updating the time constants for each component (default: 1)
@@ -76,7 +84,7 @@ Names = [
     'merge_thr          ' % merging threshold (default: 0.85)
     'fast_merge         ' % flag for using fast merging (default 1)
     % DF/F (extract_DF_F.m)
-    'df_prctile         ' % percentile to be defined as baseline (default 50, median)
+    'df_prctile         ' % percentile to be defined as baseline (default 20)
     'df_window          ' % length of running window (default [], no window)
     % CONTOUR PLOTS (plot_contours.m)
     'cont_threshold     '
@@ -94,11 +102,37 @@ Names = [
     'make_gif           ' % save animation (default: 0)
     'save_avi           ' % save video (default: 0)
     'pause_time         ' % time to pause between each component (default: Inf, user has to click)
-    % CLASSIFY COMPONENTS (classify components.m)
+    % CLASSIFY COMPONENTS PIXELS (classify_components_pixels.m)
     'cl_thr             ' % overlap threshold for energy for a component to be classified as true (default: 0.8)
+    % CLASSIFY COMPONENTS with CORRELATION (classify_comp_corr.m)
+    'space_thresh       ' % threshold for r-value in space (default: 0.4)
+    'time_thresh        ' % threshold for r-value in time (default: 0.4)
+    'A_thresh           ' % threshold for determining overlap (default: 0.1)
+    'Npeaks             ' % # of peaks to be considered (default: 20)
+    'peak_int           ' % interval around the peak (default: -2:6)
+    'MinPeakDist        ' % minimum peak distance for finding points of high activity  (default: 10)
     % ORDER COMPONENTS (order_components.m)
     'nsd                ' % number of standard deviations (default: 3)
     'nfr                ' % number of consecutive frames (default: 3)
+    % PATCHES          (run_CNMF_patches.m)
+    'gnb                ' % number of global background components (default: 1)
+    'create_memmap      ' % create a memory mapped file if it is not provided in the input (default: false)    
+    'classify_comp      ' % classify components based on correlation values (default: true)
+    % parameters for microendoscope 
+    'min_pnr            '
+    'seed_method        '    
+    'min_pixel          ' % minimum number of nonzero pixels for a neuron 
+    'bd                 ' % number of pixels to be ignored in the boundary 
+    'deconv_flag        ' % perform deconvolution or not     
+    % parameters for max probability test (trace_fit_extreme.m)
+    'max_pr_thr         ' % threshold for keeping components (default: 0.9)
+    'fr                 ' % imaging frame rate in Hz (defaut: 30)
+    't_int              ' % length of each trial in sec (default: 0.25)
+    'sn_fac             ' % multiplicative factor for estimated noise level (default: 1)
+    % parameters for thresholding based on size (classify_components.m)
+    'max_size_thr       ' % maximum size of each component in pixels (default: 300)
+    'min_size_thr       ' % minimum size of each component in pixels (default: 9)
+    'size_thr           ' % fraction of max value for thresholding each component before determining its size (default 0.2)
     ];
 
 [m,n] = size(Names);
@@ -187,6 +221,7 @@ Values = [
     {1}
     {1}
     {'greedy'}
+    {20}
     {true}
     {2}
     % greedy_corr parameters (greedyROI_corr.m)
@@ -211,9 +246,9 @@ Values = [
     {3}
     {5}
     % Noise and AR coefficients calculation (preprocess_data.m)
-    {[0.25,0.5]}
-    {'logmexp'}
-    {3000}
+    {[0.33,0.5]}
+    {'mean'}
+    {10000}
     {false}
     {5}
     {false}
@@ -221,7 +256,11 @@ Values = [
     {false}
     {[64,64]}
     {false}
+    {false}
+    {30}
+    {21}
     % UPDATING SPATIAL COMPONENTS (unpdate_spatial_components.m)
+    {'regularized'}
     {'dilate'}
     {~isempty(which('parpool'))}
     % determine_search_location.m
@@ -230,9 +269,12 @@ Values = [
     {3}
     {strel('disk',4,0)}
     % threshold_components.m
+    {'max'}
+    {0.1}
     {0.995}
     {strel('square',3)}
     {[3,3]}
+    {true}
     % UPDATING TEMPORAL COMPONENTS (update_temporal_components.m)
     {'constrained_foopsi'}
     {1}
@@ -248,7 +290,7 @@ Values = [
     {0.85}
     {1}
     % DF/F (extract_DF_F.m)
-    {50}
+    {20}
     {[]}
     % CONTOUR PLOTS (plot_contours.m)
     {0.9}
@@ -266,11 +308,37 @@ Values = [
     {0}
     {0}
     {Inf}
-    % CLASSIFY COMPONENTS (classify_components.m)
+    % CLASSIFY COMPONENTS PIXELS (classify_components_pixels.m)
     {0.8}
+    % CLASSIFY COMPONENTS with CORRELATION (classify_comp_corr.m)
+    {0.4}
+    {0.4}
+    {0.1}
+    {20}
+    {-2:6}
+    {10}
     % ORDER COMPONENTS (order_components.m)
     {3}
     {5}
+    % PATCHES          (run_CNMF_patches.m)
+    {1}
+    {false}    
+    {true}
+    % parameters for microendoscope
+    {10}
+    {'auto'}
+    {5}
+    {3}    
+    {true}
+    % parameters for max probability test (trace_fit_extreme.m)
+    {0.9}
+    {30}
+    {0.25}
+    {1}
+    % parameters for size based thresholding (classify_components.m)
+    {320}
+    {9}
+    {0.2}
     ];
 
 for j = 1:m
