@@ -31,9 +31,7 @@ end
 if ~isempty(initImages)
     useIm = zeros(size(initImages,3),1);
     for nImg = 1:size(initImages,3)
-        tmpImg = medfilt2(initImages(:,:,nImg),[5 5]);
         tmpImg = bwareafilt(tmpImg>0,1);
-        if bwarea(tmpImg) > 30
             useIm(nImg) = 1;
         else
             useIm(nImg) = 0;
