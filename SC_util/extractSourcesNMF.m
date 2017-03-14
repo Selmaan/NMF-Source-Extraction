@@ -38,7 +38,7 @@ optionsThresh.nrgthr = 0.95;
 %% Get Patches Results
 patch_size = [52,52];                   % size of each patch along each dimension (optional, default: [32,32])
 overlap = [6,6];                        % amount of overlap in each dimension (optional, default: [4,4])
-nFactors = 12;
+nFactors = 14;
 patches = construct_patches(imSize,patch_size,overlap);
 
 % parfor_progress(length(patches));
