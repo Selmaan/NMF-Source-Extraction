@@ -37,9 +37,9 @@ function [c, s, b, g, lam, active_set, miter] = sc_constrained_oasisAR1(y, g, sn
 y = reshape(y, [], 1);
 T = length(y);
 
-if ~exist('g', 'var') || isempty(g)
-    g = estimate_time_constant(y, 1);
-end
+% if ~exist('g', 'var') || isempty(g)
+%     g = estimate_time_constant(y, 1);
+% end
 if ~exist('sn', 'var') || isempty(sn)
     sn = GetSn(y);
 end
