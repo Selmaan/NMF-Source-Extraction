@@ -1,5 +1,7 @@
 function stimExpt = stimCNMF(acqObj,stimBlocks)
 
+%% Parameters and Arguments
+
 if nargin<2
     stimBlocks = logical([0 1 1 1 0]);
 end
@@ -10,6 +12,11 @@ if exist(acqObj.indexedMovie.slice(1).channel(1).memMap,'file')
 else
     error('Could not find memMap File'),
 end
+
+linFOVum = [500 500];
+fprintf('Select Linear Reference Image \n'),
+[linMovNames, linMovPath] = uigetfile([cd,'\*.tif'],...
+    'MultiSelect','off');
 
 %% Get stimulation frames and target IDs
 stimExpt = struct;
@@ -34,6 +41,15 @@ for nBlock = 1:length(stimExpt.syncFns)
     else
         stimExpt.stimOrder{nBlock} = [];
     end
+end
+
+if sum(acqObj.correctedMovies.slice.channel.size(:,3))...
+        == sum(cellfun(@length,stimExpt.frameTimes))
+    fprintf('\n Logged Frames equals Detected Frame Times \n'),
+else
+    warning('Logged Frames Differs From Detected Frame Times'),
+    fprintf('Manually fix this: \n'),
+    keyboard,
 end
 clear syncDat
 
@@ -93,8 +109,83 @@ stimExpt.rawStimIm = allStimIm;
 stimExpt.procStimIm = winStimIm;
 
 %% Extract Sources w/ avgStim Image initializations
-acqObj.syncInfo.stimExpt = stimExpt;
 acqObj.extractSources(1,reshape(Y,512,512,size(Y,2)),winStimIm),
 clear Y,
 % acqObj.extractSources(1,[],winStimIm),
 update_temporal_components_fromTiff(acqObj);
+
+
+%% Identify cells and other potential stim-sources and get traces
+
+A = load(acqObj.roiInfo.slice.NMF.filename,'A');
+A = A.A;
+A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
+l = clusterSourcesWithCurrentNn(A);
+
+stimIms = reshape(stimExpt.procStimIm,512^2,[]);
+stimIms = bsxfun(@rdivide,stimIms,sqrt(sum(stimIms.^2)));
+stimSourceCorr = A'*stimIms;
+[stimSources,~] = find(stimSourceCorr>1/2);
+cellSources = find(l==1);
+validSources{1} = union(stimSources,cellSources);
+
+stimFrames = cell(0);
+for nBlock = find(stimExpt.stimBlocks)
+    blockOffsetFrame = length(cat(1,stimExpt.frameTimes{1:nBlock-1}));
+    stimFrames{nBlock} = blockOffsetFrame + stimExpt.psych2frame{nBlock}(1:length(stimExpt.stimOrder{nBlock}));
+end
+
+stimFrames = cat(1,stimFrames{stimExpt.stimBlocks});
+stimFrames = repmat(stimFrames,1,4) + repmat(0:2:6,size(stimFrames,1),1);
+stimFrames = stimFrames(:);
+interpFrames = cell(0);
+interpFrames{1} = stimFrames;
+interpFrames{2} = stimFrames+1;
+interpFrames{3} = stimFrames-1;
+
+[dF,deconv,denoised,Gs,Lams,A,b,f] = extractTraces_NMF(acqObj,validSources,interpFrames);
+dF = cell2mat(dF);
+A = cell2mat(A);
+denoised = cell2mat(denoised);
+deconv = cell2mat(deconv);
+%% 
+stimExpt.fnLin = fullfile(linMovPath,linMovNames);
+[stimExpt.gLin,stimExpt.rLin,stimExpt.linRA,...
+    stimExpt.gRes,stimExpt.resRA,stimExpt.resHeader,...
+    stimExpt.roiCentroid,stimExpt.stimGroups] = ...
+    alignStimExpt(stimExpt.resFns{2},stimExpt.fnLin);
+
+stimExpt.xConvFactor = linFOVum(1)/stimExpt.linRA.ImageExtentInWorldX;
+stimExpt.yConvFactor = linFOVum(2)/stimExpt.linRA.ImageExtentInWorldY;
+
+cellFilts = bsxfun(@rdivide,A,sum(A,1));
+[i,j] = ind2sub([512,512],1:512^2);
+cellCentroids = ([j;i]*cellFilts)';
+[xWorld,yWorld] = intrinsicToWorld(stimExpt.resRA,...
+    cellCentroids(:,1),cellCentroids(:,2));
+cellCentroids = [xWorld,yWorld];
+nStim = size(stimExpt.roiCentroid,1);
+nCell = size(cellCentroids,1);
+distMat = sqrt(sum((repmat(reshape(cellCentroids,nCell,1,2),[1 nStim 1]) -...
+    repmat(reshape(stimExpt.roiCentroid,1,nStim,2),[nCell 1 1])).^2,3));
+[mDistVal,mDistInd] = min(distMat * (stimExpt.xConvFactor/2 + stimExpt.yConvFactor/2));
+
+stimExpt.dF_deconv = deconv;
+stimExpt.cIds = validSources{1};
+stimExpt.cellStimDistMat = distMat;
+stimExpt.cellStimInd = mDistInd;
+stimExpt.cellStimDist = mDistVal;
+stimExpt.cellCentroids = cellCentroids;
+stimExpt.cellStimCorr = stimSourceCorr(validSources{1},:);
+
+tmpDir = acqObj.defaultDir;
+expName = strrep(tmpDir(end-10:end-1),'\','_');
+for i=1:length(stimExpt.syncFns)
+    stimExpt.stimFns{i} = fullfile(acqObj.defaultDir,sprintf('%s_%d',expName,i));
+    stimFID = fopen(stimExpt.stimFns{i});
+    stimExpt.stimInfo{i} = fread(stimFID,'float64');
+    fclose(stimFID);
+end
+
+save('stimExpt','stimExpt'),
+acqObj.syncInfo.stimExpt = stimExpt;
