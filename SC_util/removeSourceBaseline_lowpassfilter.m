@@ -2,6 +2,13 @@ function [fSub, f_] = removeSourceBaseline_lowpassfilter(f, frameRate)
 % Alternative nonparametric baselining function that uses a
 % lowpass-filtered version of the fluorescence as the baseline.
 
+if isempty(f) || all(isnan(f))
+	warning('Trying to calculate baseline on empty or all NaN vector.')
+	fSub = 0;
+	f_ = 0;
+	return
+end
+
 % Specify filter parameters for baselining:
 tau = 150; % Filter time constant in seconds.
 T = 1/frameRate;

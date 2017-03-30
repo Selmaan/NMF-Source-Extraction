@@ -39,7 +39,7 @@ for nAcq = 1:size(acqBlocks,1)
     acqInd = acqBlocks(nAcq,1):acqBlocks(nAcq,2);
     parfor nSource = 1:size(C,1)
         warning('off', 'stats:statrobustfit:IterationLimit');
-        C(nSource,acqInd) = removeSourceBaseline(C(nSource,acqInd));
+        C(nSource,acqInd) = removeSourceBaseline_lowpassfilter(C(nSource,acqInd));
     end
 end
 warning(warnState);

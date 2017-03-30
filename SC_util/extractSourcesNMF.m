@@ -140,10 +140,10 @@ P.neuron_sn = cell(numRetain,1);
 warnState = warning('off', 'stats:statrobustfit:IterationLimit');
 for nAcq = 1:size(acqBlocks,1)
     acqInd = acqBlocks(nAcq,1):acqBlocks(nAcq,2);
-    fSub = removeSourceBaseline(sum(f(:,acqInd),1));
+    fSub = removeSourceBaseline_lowpassfilter(sum(f(:,acqInd),1));
     for nSource = 1:size(C,1)
         warning('off', 'stats:statrobustfit:IterationLimit');
-        cSub = removeSourceBaseline(C(nSource,acqInd));
+        cSub = removeSourceBaseline_lowpassfilter(C(nSource,acqInd));
         pilFit = robustfit(fSub,cSub,'bisquare',2);
         C(nSource,acqInd) = cSub - pilFit(1) - pilFit(2)*fSub;
     end
