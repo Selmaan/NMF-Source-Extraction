@@ -10,6 +10,6 @@ end
 w(w<0) = 0;
 % Enforce L2 Norm
 w = bsxfun(@rdivide,w,sqrt(sum(w.^2)));
-w(isnan(w)) = 0;
+w(~isfinite(w)) = 0;
 pW = pinv(w);
 t = pW*oMov;

@@ -1,4 +1,4 @@
-function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options)
+function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options,fR)
 % spike inference using a constrained deconvolution approach:
 %      min      sum(sp)
 %    c,sp,b,c1
@@ -10,6 +10,7 @@ function [c,b,c1,g,sn,sp,snScale] = constrained_foopsi(y,b,c1,g,sn,options)
 
 %   Variables:
 %   y:      raw fluorescence data (vector of length(T))
+%   fR:     frame rate of the data (for estimating time-constants)
 %   c:      denoised calcium concentration (Tx1 vector)
 %   b:      baseline concentration (scalar)
 %  c1:      initial concentration (scalar)
@@ -46,7 +47,7 @@ defoptions.noise_range = [0.33,0.5];    % frequency range over which to estimate
 defoptions.noise_method = 'logmexp';    % method for which to estimate the noise level
 defoptions.lags = 30;                    % number of extra lags when computing the AR coefficients
 defoptions.resparse = 0;                % number of times to re-sparse solution
-defoptions.fudge_factor = .98;            % fudge factor for time constants
+defoptions.fudge_factor = .99;            % fudge factor for time constants
 
 if nargin < 6
     options = defoptions;
@@ -101,11 +102,11 @@ if isempty(sn)
     sn = GetSn(y_full,options.noise_range,options.noise_method);
 end
 if isempty(g)
-    g = estimate_time_constants(y_full,options.p,sn,options.lags);
+    g = estimate_time_constants(y_full,options.p,sn,options.lags,fR);
     while max(abs(roots([1,-g(:)']))>1) && options.p < 5
         warning('No stable AR(%i) model found. Checking for AR(%i) model \n',options.p,options.p+1);
         options.p = options.p + 1;
-        g = estimate_time_constants(y,options.p,sn,options.lags);
+        g = estimate_time_constants(y,options.p,sn,options.lags,fR);
     end
     if options.p == 5
         g = 0;
@@ -252,26 +253,23 @@ end
                 sn = sqrt(exp(mean(log(psd_Y(ind)/2))));
         end
     end
-
-    
-    function g = estimate_time_constants(y,p,sn,lags)
-        % estimate time constants from the sample autocovariance function
         
-        lags = lags + p;
-        if ~isempty(which('xcov')) %signal processing toolbox
-            xc = xcov(y,lags,'biased');
-        else
-            ynormed = (y - mean(y));
-            xc = nan(lags + 1, 1);
-            for k = 0:lags
-                xc(k + 1) = ynormed(1 + k:end)' * ynormed(1:end - k);
-            end
-            xc = [flipud(xc(2:end)); xc] / numel(y);
-        end
-        xc = xc(:);
-        A = toeplitz(xc(lags+(1:lags)),xc(lags+(1:p))) - sn^2*eye(lags,p);
-        g = pinv(A)*xc(lags+2:end);            
-    end
+%         function g = estimate_time_constants(y,p,sn,lags,nBinsAR)
+%         lags = lags + p;
+%         if ~isempty(which('xcov')) %signal processing toolbox
+%             xc = xcov(y,lags,'biased');
+%         else
+%             ynormed = (y - mean(y));
+%             xc = nan(lags + 1, 1);
+%             for k = 0:lags
+%                 xc(k + 1) = ynormed(1 + k:end)' * ynormed(1:end - k);
+%             end
+%             xc = [flipud(xc(2:end)); xc] / numel(y);
+%         end
+%         xc = xc(:);
+%         A = toeplitz(xc(lags+(1:lags)),xc(lags+(1:p))) - sn^2*eye(lags,p);
+%         g = pinv(A)*xc(lags+2:end);            
+%     end
 
     function [f,grad] = lagrangian_temporal_gradient(Al,thr,y_raw,bas_flag,c1_flag)
         options_qp = optimset('Display','Off','Algorithm','interior-point-convex');

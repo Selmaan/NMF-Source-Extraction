@@ -70,7 +70,9 @@ sigRank,
 cIm = zeros(512,512,3);
 cIm(:,:,1) = reshape(sum(A(:,idx==sigRank(1)),2),512,512);
 cIm(:,:,2) = reshape(sum(A(:,idx==sigRank(2)),2),512,512);
-cIm(:,:,3) = reshape(sum(A(:,idx==sigRank(3)),2),512,512);
+if nClusters>2
+    cIm(:,:,3) = reshape(sum(A(:,idx==sigRank(3)),2),512,512);
+end
 % for i=1:length(jID)
 %     cIm(:,:,3) = cIm(:,:,3) + reshape(sum(A(:,idx==jID(i)),2),512,512);
 % end

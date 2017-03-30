@@ -104,15 +104,14 @@ if isempty(fin) || nargin < 5   % temporal background missing
         fin = fin/norm(fin);
         b = max(Y*fin',0);
     else
-        fin = max(b(bk_pix)'*Y(bk_pix,:),0)/norm(b(bk_pix))^2;
+        fin = max(b(bk_pix,:)'*Y(bk_pix,:),0)/(b(bk_pix,:)'*b(bk_pix,:));
     end
 end
 
 % construct product A'*Y
-step = 1e4;
+step = 5e3;
 if memmaped
     AY = zeros(size(A,2),T);
-%     bY = zeros(1,T);
     bY = zeros(size(b,2),T);
     for i = 1:step:d
         Y_temp = double(Y.Yr(i:min(i+step-1,d),:));
@@ -182,14 +181,15 @@ else
         params.B = 300;
         params.Nsamples = 400;
         params.p = P.p;
+        params.bas_nonneg = options.bas_nonneg;
     else
         params = [];
     end
 end
 p = P.p;
 options.p = P.p;
+C = double(C);
 if options.temporal_parallel
-    C = double(C);
     for iter = 1:ITER
         [O,lo] = update_order(A(:,1:K));
         for jo = 1:length(O)
