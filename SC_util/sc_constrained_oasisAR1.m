@@ -45,7 +45,7 @@ if ~exist('sn', 'var') || isempty(sn)
 end
 if ~exist('lam', 'var') || isempty(lam);   lam = 0; end
 if ~exist('optimize_b', 'var') || isempty(optimize_b)
-    optimize_b = true;
+    optimize_b = false;
 end
 if ~exist('optimize_g', 'var') || isempty(optimize_g)
     optimize_g = true;
@@ -106,7 +106,7 @@ if ~optimize_b   %% don't optimize the baseline b
     end
 else
     %% initialization
-    b = quantile(y, 0.15); 
+	b = quantile(y, 0.15); 
     [solution, spks, active_set] = oasisAR1(y-b, g, lam);
     update_lam_b; 
     
