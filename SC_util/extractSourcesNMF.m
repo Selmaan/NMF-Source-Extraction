@@ -163,7 +163,7 @@ Kn = nSources;
 while Km < Kn
     Kn = size(A,2);
     [A,C] = merge_components([],A,[],C,f,P,C,options);
-    Km = size(A,2)
+    Km = size(A,2);
 end
 
 [A,C] = order_ROIs(A,C);

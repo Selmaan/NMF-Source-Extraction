@@ -19,11 +19,12 @@ Y = memMap.Yr;
 fprintf('Done! \n'),
 
 %% Extract sources:
-acqObj.extractSources(1, reshape(Y, 512, 512, size(Y,2)))
+acqObj.extractSources(1)
+% acqObj.extractSources(1, reshape(Y, 512, 512, size(Y,2)))
 clear Y
 update_temporal_components_fromTiff(acqObj);
 
-%% Sort sources and get traces:
+%% Get traces:
 % A = load(acqObj.roiInfo.slice.NMF.filename,'A');
 % A = A.A;
 
@@ -43,15 +44,14 @@ deconv = cell2mat(deconv);
 %     'dF', 'deconv', 'denoised', 'Gs', 'Lams', '-v7.3');
 
 figure(2)
-% clf
+clf
 hold on
 n = 10;
 i = mod(i, 20) + 1;
 c = lines(20);
-xxx = 10000;
-plot(dF(1:n, :)'./xxx + (0:n-1)*80, 'k')
-plot(real(denoised(1:n, :)'./xxx + (0:n-1)*80), 'color', c(i+1, :))
-plot(real(1*deconv(1:n, :)'./xxx + (0:n-1)*80), 'r--')
+plot(dF(1:n, :)' + (0:n-1)*200, 'k')
+plot(real(denoised(1:n, :)' + (0:n-1)*200), 'color', c(i, :))
+plot(real(1*deconv(1:n, :)' + (0:n-1)*200), 'r--')
 
 %% my baselining:
 
