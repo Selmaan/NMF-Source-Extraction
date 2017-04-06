@@ -48,8 +48,13 @@ if sum(acqObj.correctedMovies.slice.channel.size(:,3))...
     fprintf('\n Logged Frames equals Detected Frame Times \n'),
 else
     warning('Logged Frames Differs From Detected Frame Times'),
-    fprintf('Manually fix this: \n'),
+    fprintf('Manually fix frame times field: \n'),
     keyboard,
+    fprintf('Correcting psych2frames: \n'),
+    for nBlock = 1:length(stimExpt.syncFns)
+        stimExpt.psych2frame{nBlock} = interp1(stimExpt.frameTimes{nBlock},...
+            1:length(stimExpt.frameTimes{nBlock}),stimExpt.psychTimes{nBlock},'next');
+    end
 end
 clear syncDat
 
@@ -127,7 +132,8 @@ stimIms = bsxfun(@rdivide,stimIms,sqrt(sum(stimIms.^2)));
 stimSourceCorr = A'*stimIms;
 [stimSources,~] = find(stimSourceCorr>1/2);
 cellSources = find(l==1);
-validSources{1} = union(stimSources,cellSources);
+% validSources{1} = union(stimSources,cellSources);
+validSources{1} = cellSources;
 
 stimFrames = cell(0);
 for nBlock = find(stimExpt.stimBlocks)
@@ -189,3 +195,4 @@ end
 
 save('stimExpt','stimExpt'),
 acqObj.syncInfo.stimExpt = stimExpt;
+acqObj.save,
