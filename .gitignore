@@ -47,3 +47,4 @@ Temporary Items
 .apdisk
 *.asv
 SC_util/extractSourcesNMF.asv
+convNet/SC_trainData_170504.mat
