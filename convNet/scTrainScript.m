@@ -1,7 +1,5 @@
 manLabels.labels = [];
 manLabels.sources = [];
-c = parcluster('local');
-c.NumWorkers = 10;
 
 %% Load in Data
 includeID = find(labels<6);
@@ -10,12 +8,16 @@ sources = sources(:,includeID);
 
 manLabels.labels = cat(1,manLabels.labels,labels(:));
 manLabels.sources = cat(2,manLabels.sources,sources);
-
+length(manLabels.labels),
 %% Align and assign category
 
-manLabels.labels(manLabels.labels<3) = 1;
-manLabels.labels(manLabels.labels==3) = 2;
-manLabels.labels(manLabels.labels>3) = 3;
+% manLabels.labels(manLabels.labels<3) = 1;
+% manLabels.labels(manLabels.labels==3) = 2;
+% manLabels.labels(manLabels.labels>3) = 3;
+
+% Normalize Sources
+manLabels.sources = bsxfun(@rdivide,...
+    manLabels.sources,sqrt(sum(manLabels.sources.^2)));
 
 % Align Sources
 winRad = 12;
@@ -51,7 +53,7 @@ for i = 1:nClasses
 end
 
 % Determine needed class types and indeces and pre-allocate:
-nTotal = size(alignedMasks,3)*25;
+nTotal = size(alignedMasks,3)*30;
 augmentedClass = realLabels;
 augmentedInd = (1:length(realLabels))';
 nPerClass = round(nTotal/nClasses);

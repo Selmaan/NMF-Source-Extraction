@@ -38,39 +38,39 @@ optionsThresh.nrgthr = 0.95;
 %% Get Patches Results
 patch_size = [52,52];                   % size of each patch along each dimension (optional, default: [32,32])
 overlap = [6,6];                        % amount of overlap in each dimension (optional, default: [4,4])
-nFactors = 12;
+nFactors = 14;
 patches = construct_patches(imSize,patch_size,overlap);
 
 % parfor_progress(length(patches));
 % parfor_progress;
 fprintf('Initializing patches...');
 
-% Commented out code uses initImages during initialization phase
-% if isempty(data) %memory mapped
-%     RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,initImages);
-%     parfor patchNum = 2:length(patches)
-%     %     parfor_progress;
-%         RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,initImages);
-%     end
-% else
-%     for patchNum = 1:length(patches)
-%         RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors,initImages);
-%     end
-% end
-
-% Code used here does not use initImages, it'll be added after initialization
+% Code here uses initImages during initialization phase
 if isempty(data) %memory mapped
-    RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors);
+    RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,initImages);
     parfor patchNum = 2:length(patches)
     %     parfor_progress;
-        RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors);
+        RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,initImages);
     end
 else
     for patchNum = 1:length(patches)
-        RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors);
+        RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors,initImages);
     end
 end
-fprintf(' done. \n');
+
+% Code used here does not use initImages, it'll be added after initialization
+% if isempty(data) %memory mapped
+%     RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors);
+%     parfor patchNum = 2:length(patches)
+%     %     parfor_progress;
+%         RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors);
+%     end
+% else
+%     for patchNum = 1:length(patches)
+%         RESULTS(patchNum) = patchInitNMF(data,nSlice,patches,patchNum,nFactors);
+%     end
+% end
+% fprintf(' done. \n');
 %% combine results into one structure
 fprintf('Combining results from different patches...');
 C = double(cell2mat({RESULTS(:).C}'));
@@ -174,25 +174,25 @@ C = C(1:numRetain,:);
 
 %% Add initImages as Sources
 
-if ~isempty(initImages)
-    fprintf('Adding initImages to Source Initialization...'),
-    % Add initImages to source matrix
-    A = cat(2,A,sparse(reshape(initImages,prod(imSize),size(initImages,3))));
-    % Normalize spatial components
-    A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
-    % use temporary meanRef as background (note, do NOT replace f)
-    b = reshape(meanRef(acqObj),prod(imSize),1);
-    b = size(A,2).*b./sqrt(sum(b.^2));
-    % Ensure components are finite
-    A(~isfinite(A)) = 0;
-    b(~isfinite(b)) = 0;
-    if ~isempty(data)
-        [C,~,A] = pinv_temporal_components(data,nSlice,A,b);
-    else
-        [C,~,A] = pinv_temporal_components(acqObj,nSlice,A,b);
-    end
-    fprintf(' done. \n');
-end
+% if ~isempty(initImages)
+%     fprintf('Adding initImages to Source Initialization...'),
+%     % Add initImages to source matrix
+%     A = cat(2,A,sparse(reshape(initImages,prod(imSize),size(initImages,3))));
+%     % Normalize spatial components
+%     A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
+%     % use temporary meanRef as background (note, do NOT replace f)
+%     b = reshape(meanRef(acqObj),prod(imSize),1);
+%     b = size(A,2).*b./sqrt(sum(b.^2));
+%     % Ensure components are finite
+%     A(~isfinite(A)) = 0;
+%     b(~isfinite(b)) = 0;
+%     if ~isempty(data)
+%         [C,~,A] = pinv_temporal_components(data,nSlice,A,b);
+%     else
+%         [C,~,A] = pinv_temporal_components(acqObj,nSlice,A,b);
+%     end
+%     fprintf(' done. \n');
+% end
 
 %% Initialize dummy variables
 nSources = size(A,2);
@@ -202,12 +202,12 @@ P.gn = cell(nSources,1);
 P.neuron_sn = cell(nSources,1);
 
 % label initImage sources, hacky solution here
-if ~isempty(initImages)
-    for i = 1:size(initImages,3)
-        sourceInd = i - size(initImages,3) + nSources;
-        P.b{sourceInd} = i;
-    end
-end 
+% if ~isempty(initImages)
+%     for i = 1:size(initImages,3)
+%         sourceInd = i - size(initImages,3) + nSources;
+%         P.b{sourceInd} = i;
+%     end
+% end 
 
 %% Baseline and normalize traces
 
@@ -233,13 +233,13 @@ f = f * scaleFactor;
 %% First pass to clean up initialization
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
+    (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Enforce robustness with noise inflation
 noiseTolerance = 1.1;
 P.sn = P.snDS * noiseTolerance;
 [A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
+    (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Clean up robust results
 
@@ -252,18 +252,18 @@ f = f * scaleFactor;
 
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice);
+    (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Save Results
 
-saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170306.mat',nSlice));
+saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170311.mat',nSlice));
 acqObj.roiInfo.slice(nSlice).NMF.filename = saveFile;
 save(saveFile,'A','b','C','f','P','options','optionsThresh'),
 
 end
 
 function [A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,data,acqBlocks,memMap,nSlice)
+    (A,C,f,P,options,acqObj,data,memMap,nSlice)
 
 fprintf('Updating spatial components...');
 pctRunOnAll warning('off','MATLAB:nargchk:deprecated'),
