@@ -44,6 +44,8 @@ for nBlock = 1:length(stimExpt.syncFns)
     else
         stimExpt.stimOrder{nBlock} = [];
     end
+    tmp = medfilt1(syncDat(:,3:5),100) - 1.5135;
+    stimExpt.ballVel{nBlock} = tmp(stimExpt.frameTimes{nBlock},:);
 end
 
 if sum(acqObj.correctedMovies.slice.channel.size(:,3))...
