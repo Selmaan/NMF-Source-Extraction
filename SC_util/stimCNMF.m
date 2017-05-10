@@ -44,7 +44,12 @@ for nBlock = 1:length(stimExpt.syncFns)
     else
         stimExpt.stimOrder{nBlock} = [];
     end
-    tmp = medfilt1(syncDat(:,3:5),100) - 1.5135;
+    try
+        tmp = medfilt1(syncDat(:,3:5),100) - 1.5135;
+    catch
+        warning('This Experiment lacks Yaw Velocity'),
+        tmp = medfilt1(syncDat(:,3:4),100) - 1.5135;
+    end
     stimExpt.ballVel{nBlock} = tmp(stimExpt.frameTimes{nBlock},:);
 end
 
