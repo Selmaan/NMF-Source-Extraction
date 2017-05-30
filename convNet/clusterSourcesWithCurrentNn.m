@@ -27,7 +27,10 @@ for iRoi = 1:nRois
         centroids(iRoi, 2)-winRad:centroids(iRoi, 2)+winRad);
     alignedMasks(:,:,iRoi) = tempMask;
 end
-    
+
+% Subtract padding (winRad) from the returned centroids so that they
+% are in proper image coordinates.
+centroids = centroids - winRad;
     
 %% Cluster with current NN:
 Xtest = permute(alignedMasks, [1 2 4 3]);
