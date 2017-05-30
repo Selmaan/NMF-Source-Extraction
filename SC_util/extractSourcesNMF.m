@@ -7,9 +7,9 @@ for blockNum = 2:size(syncObj.sliceFrames,1)
         [1+syncObj.sliceFrames(blockNum-1,nSlice), syncObj.sliceFrames(blockNum,nSlice)];
 end
 
-memMap = matfile(acqObj.indexedMovie.slice(nSlice).channel.memMap);  %useful to construct memmap even w/ data
+memMap = matfile(acqObj.indexedMovie.slice(nSlice).channel(1).memMap);  %useful to construct memmap even w/ data
 if isempty(data) %using memory map
-    imSize = acqObj.correctedMovies.slice(nSlice).channel.size(1,1:2);
+    imSize = acqObj.correctedMovies.slice(nSlice).channel(1).size(1,1:2);
     nFramesDS = size(memMap,'Y',3);
 else
     imSize = [size(data,1),size(data,2)];
@@ -41,15 +41,14 @@ overlap = [6,6];                        % amount of overlap in each dimension (o
 nFactors = 14;
 patches = construct_patches(imSize,patch_size,overlap);
 
-% parfor_progress(length(patches));
-% parfor_progress;
 fprintf('Initializing patches...');
+parfor_progress(length(patches));
 
 % Code here uses initImages during initialization phase
 if isempty(data) %memory mapped
     RESULTS = patchInitNMF(acqObj,nSlice,patches,1,nFactors,initImages);
     parfor patchNum = 2:length(patches)
-    %     parfor_progress;
+        parfor_progress;
         RESULTS(patchNum) = patchInitNMF(acqObj,nSlice,patches,patchNum,nFactors,initImages);
     end
 else
@@ -111,7 +110,7 @@ fprintf(' done. \n');
 %% load subset of high temporal resolution data to get imaging noise
 minNoisePrctile = 5;
 nMovs = 15;
-movNums = round(linspace(2,length(acqObj.correctedMovies.slice.channel.fileName)-1,nMovs));
+movNums = round(linspace(2,length(acqObj.correctedMovies.slice.channel(1).fileName)-1,nMovs));
 allSN = nan(512^2,nMovs);
 for nMov = 1:nMovs
     tempMov = single(readCor(acqObj,movNums(nMov)));

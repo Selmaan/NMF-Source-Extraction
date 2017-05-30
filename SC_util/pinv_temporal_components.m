@@ -12,7 +12,7 @@ pA = pinv(full([A,b]));
 %% 
 if ~isnumeric(acqObj_data)
     memMap = matfile(acqObj_data.indexedMovie.slice(nSlice).channel(1).memMap);
-    imSize = acqObj_data.correctedMovies.slice(nSlice).channel.size(1,1:2);
+    imSize = acqObj_data.correctedMovies.slice(nSlice).channel(1).size(1,1:2);
     nFrames = size(memMap,'Y',3);
     ref = reshape(meanRef(acqObj_data),prod(imSize),1);
     useMemMap = true;

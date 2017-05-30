@@ -10,7 +10,7 @@ Ab = full([A,b]);
 pA = pinv(Ab);
 
 %% 
-movSizes = acqObj.correctedMovies.slice(nSlice).channel.size;
+movSizes = acqObj.correctedMovies.slice(nSlice).channel(1).size;
 imSize = movSizes(1,1:2);
 ref = reshape(meanRef(acqObj),prod(imSize),1);
 AY = nan(size(pA,1),sum(movSizes(:,3)),'single');
