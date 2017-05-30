@@ -45,7 +45,7 @@ if ~exist('sn', 'var') || isempty(sn)
 end
 if ~exist('lam', 'var') || isempty(lam);   lam = 0; end
 if ~exist('optimize_b', 'var') || isempty(optimize_b)
-    optimize_b = false;
+    optimize_b = true;
 end
 if ~exist('optimize_g', 'var') || isempty(optimize_g)
     optimize_g = true;

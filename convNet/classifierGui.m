@@ -22,9 +22,9 @@ classdef classifierGui < handle
             
             % These names are the classification scheme that I (Matthias)
             % am using. To add more classes, append them at the end.
-            o.classNames = {'doughnutSoma', 'outOfPlaneSoma', ...
+            o.classNames = {'Soma', ...
                 'smallRoundProcess', 'complexProcess', ...
-                'messyAndMultiples', 'cutEdge'};
+                'junkOrGrabBag'};
             
             if any(isnan(o.labels))
                 nan2newLabel(o, 'originalNans')
@@ -36,13 +36,13 @@ classdef classifierGui < handle
             clf
 
             if isempty(o.overlayImg)
-                o.hImg = imshow(1.5*mat2gray(full(...
+                o.hImg = imshow(2*mat2gray(full(...
                     reshape(sum(o.sources(:,o.labels==o.currentClass), 2), 512, 512))), ...
                     'InitialMagnification', 'fit');
             else
                 cIm = zeros(512,512,3);
                 cIm(:,:,1) = o.overlayImg;
-                cIm(:,:,2) = 1.5*mat2gray(full(...
+                cIm(:,:,2) = 2*mat2gray(full(...
                     reshape(sum(o.sources(:,o.labels==o.currentClass), 2), 512, 512)));
                 o.hImg = imshow(cIm, 'InitialMagnification', 'fit');
             end
@@ -86,8 +86,8 @@ classdef classifierGui < handle
         
         function cbRemoveSource(o, ~, ~)
             isDisplayed = o.labels == o.currentClass;
-            coords = abs(bsxfun(@minus, o.centroids, o.hAx.CurrentPoint(1, [2, 1])));
-%             coords = abs(bsxfun(@minus, o.centroids, o.hAx.CurrentPoint(1, [1,2])));
+%             coords = abs(bsxfun(@minus, o.centroids, o.hAx.CurrentPoint(1, [2, 1])));
+            coords = abs(bsxfun(@minus, o.centroids, o.hAx.CurrentPoint(1, [1,2])));
             dist = hypot(coords(:, 1), coords(:, 2));
             dist(~isDisplayed) = inf;
             [~, i] = min(dist);

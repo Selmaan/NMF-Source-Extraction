@@ -2,13 +2,17 @@ function [labels, centroids, alignedMasks] = clusterSourcesWithCurrentNn(A,convn
 % Quick and dirty convenience function to cluster sources using the CNN.
 
 if nargin<2
-    convnetFn = 'SC_convNetCutSources_3class_allLayers.mat';
+    convnetFn = 'SC_convNet_L23.mat';
 end
 
 % Currently best convnet:
 load(convnetFn)
 
 %% Create source patches:
+
+% Normalize sources to unit norm
+A = bsxfun(@rdivide,A,sqrt(sum(A.^2)));
+
 % Align Sources
 winRad = 12;
 winWidth = 2*winRad+1;

@@ -231,8 +231,8 @@ f = f * scaleFactor;
 
 %% First pass to clean up initialization
 P.sn = P.snDS;
-[A,b,C,f,P,options] = updateCNMF_all(...
-    A,C,f,P,options,acqObj,data,memMap,nSlice);
+[A,b,C,f,P,options] = updateCNMF_all...
+    (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Enforce robustness with noise inflation
 noiseTolerance = 1.1;
