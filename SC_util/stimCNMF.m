@@ -1,4 +1,17 @@
-function stimExpt = stimCNMF(acqObj,stimBlocks)
+function stimExpt = stimCNMF(acqObj,stimBlocks,copyMemMap)
+
+if nargin< 3
+    copyMemMap = true;
+end
+
+if copyMemMap
+    fprintf('\n Copying dsMemMap to local Drive...'),
+    origPath = acqObj.indexedMovie.slice.channel.memMap;
+    newPath = 'G:\tmpFiles\Slice1_dsMemMap.mat';
+    copyfile(origPath,newPath),
+    acqObj.indexedMovie.slice.channel.memMap = newPath;
+    fprintf('Done \n'),
+end
 
 %% Parameters and Arguments
 
@@ -45,10 +58,10 @@ for nBlock = 1:length(stimExpt.syncFns)
         stimExpt.stimOrder{nBlock} = [];
     end
     try
-        tmp = medfilt1(syncDat(:,3:5),100) - 1.5135;
+        tmp = medfilt1(syncDat(:,3:5),100) - 1.517;
     catch
         warning('This Experiment lacks Yaw Velocity'),
-        tmp = medfilt1(syncDat(:,3:4),100) - 1.5135;
+        tmp = medfilt1(syncDat(:,3:4),100) - 1.517;
     end
     stimExpt.ballVel{nBlock} = tmp(stimExpt.frameTimes{nBlock},:);
 end
@@ -134,8 +147,10 @@ stimExpt.yConvFactor = linFOVum(2)/stimExpt.linRA.ImageExtentInWorldY;
 
 
 %% Extract Sources w/ avgStim Image initializations
-acqObj.extractSources(1,reshape(Y,512,512,size(Y,2)),winStimIm),
-clear Y,
+clear Y
+acqObj.extractSources(1,[],winStimIm),
+% acqObj.extractSources(1,reshape(Y,512,512,size(Y,2)),winStimIm),
+% clear Y,
 % acqObj.extractSources(1,[],winStimIm),
 update_temporal_components_fromTiff(acqObj);
 
@@ -202,6 +217,10 @@ for i=1:length(stimExpt.syncFns)
     fclose(stimFID);
 end
 
+if copyMemMap
+    acqObj.indexedMovie.slice.channel.memMap = origPath;
+    delete(newPath),
+end
 save('stimExpt','stimExpt'),
 acqObj.syncInfo.stimExpt = stimExpt;
 acqObj.save,
