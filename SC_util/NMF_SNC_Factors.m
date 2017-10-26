@@ -5,6 +5,7 @@ corrMat =corrcoef(Yvec');
 invC = 1-corrMat;
 pilC = median(invC(~isnan(invC(:))));
 corrMat = exp(-1/(1*pilC^2) * invC.^2);
+corrMat(isnan(corrMat)) = eps;
 
 %% Initialize Factors
 
