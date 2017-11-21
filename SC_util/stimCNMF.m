@@ -1,22 +1,15 @@
 function stimExpt = stimCNMF(acqObj,stimBlocks,copyMemMap)
 
+
+%% Parameters and Arguments
+
 if nargin< 3
     copyMemMap = true;
 end
 
-if copyMemMap
-    fprintf('\n Copying dsMemMap to local Drive...'),
-    origPath = acqObj.indexedMovie.slice.channel.memMap;
-    newPath = 'G:\tmpFiles\Slice1_dsMemMap.mat';
-    copyfile(origPath,newPath),
-    acqObj.indexedMovie.slice.channel.memMap = newPath;
-    fprintf('Done \n'),
-end
-
-%% Parameters and Arguments
-
 if nargin<2
-    stimBlocks = logical([0 1 1 1 0]);
+%     stimBlocks = logical([0 1 1 1 0]);
+    stimBlocks = logical([1 1 1 0]);
 end
 
 cd(acqObj.defaultDir),
@@ -31,6 +24,14 @@ fprintf('Select Linear Reference Image \n'),
 [linMovNames, linMovPath] = uigetfile([cd,'\*.tif'],...
     'MultiSelect','off');
 
+if copyMemMap
+    fprintf('\n Copying dsMemMap to local Drive...'),
+    origPath = acqObj.indexedMovie.slice.channel.memMap;
+    newPath = 'G:\tmpFiles\Slice1_dsMemMap.mat';
+    copyfile(origPath,newPath),
+    acqObj.indexedMovie.slice.channel.memMap = newPath;
+    fprintf('Done \n'),
+end
 %% Get stimulation frames and target IDs
 stimExpt = struct;
 stimExpt.stimBlocks = stimBlocks;
@@ -154,6 +155,10 @@ acqObj.extractSources(1,[],winStimIm),
 % acqObj.extractSources(1,[],winStimIm),
 update_temporal_components_fromTiff(acqObj);
 
+if copyMemMap
+    acqObj.indexedMovie.slice.channel.memMap = origPath;
+    delete(newPath),
+end
 
 %% Identify cells and other potential stim-sources and get traces
 
@@ -217,10 +222,6 @@ for i=1:length(stimExpt.syncFns)
     fclose(stimFID);
 end
 
-if copyMemMap
-    acqObj.indexedMovie.slice.channel.memMap = origPath;
-    delete(newPath),
-end
 save('stimExpt','stimExpt'),
 acqObj.syncInfo.stimExpt = stimExpt;
 acqObj.save,
