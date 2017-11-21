@@ -223,12 +223,6 @@ for nAcq = 1:size(acqBlocks,1)
 end
 
 C(C<0) = 0;
-cNorm = sqrt(sum(C.^2,2));
-C = bsxfun(@rdivide,C,cNorm);
-fNorm = sqrt(sum(f.^2,2));
-f = bsxfun(@rdivide,f,fNorm);
-scaleFactor = 1e3;
-f = f * scaleFactor;
 
 %% First pass to clean up initialization
 P.sn = P.snDS;
@@ -236,26 +230,17 @@ P.sn = P.snDS;
     (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Enforce robustness with noise inflation
-noiseTolerance = 1.1;
+noiseTolerance = 1.05;
 P.sn = P.snDS * noiseTolerance;
 [A,b,C,f,P,options] = updateCNMF_all...
     (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Clean up robust results
-
-cNorm = sqrt(sum(C.^2,2));
-C = bsxfun(@rdivide,C,cNorm);
-fNorm = sqrt(sum(f.^2,2));
-f = bsxfun(@rdivide,f,fNorm);
-scaleFactor = 1e3;
-f = f * scaleFactor;
-
 P.sn = P.snDS;
 [A,b,C,f,P,options] = updateCNMF_all...
     (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Save Results
-
 saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170311.mat',nSlice));
 acqObj.roiInfo.slice(nSlice).NMF.filename = saveFile;
 save(saveFile,'A','b','C','f','P','options','optionsThresh'),
@@ -264,6 +249,18 @@ end
 
 function [A,b,C,f,P,options] = updateCNMF_all...
     (A,C,f,P,options,acqObj,data,memMap,nSlice)
+
+% Normalize and Clean up Empty Sources
+cNorm = sqrt(sum(C.^2,2));
+C = bsxfun(@rdivide,C,cNorm);
+fNorm = sqrt(sum(f.^2,2));
+f = bsxfun(@rdivide,f,fNorm);
+scaleFactor = 1e3;
+f = f * scaleFactor;
+
+invalidInds = find(~isfinite(sum(C,2)));
+C(invalidInds,:) = [];
+A(:,invalidInds) = [];
 
 fprintf('Updating spatial components...');
 pctRunOnAll warning('off','MATLAB:nargchk:deprecated'),
