@@ -1,7 +1,11 @@
-function [Cf,AY] = update_temporal_components_fromTiff(acqObj,nSlice)
+function [Cf,AY] = update_temporal_components_fromTiff(acqObj,nSlice,nChannel)
 
 if ~exist('nSlice','var') || isempty(nSlice)
     nSlice = 1;
+end
+
+if ~exist('nChannel','var') || isempty(nChannel)
+    nChannel = 1;
 end
 
 %% Load components and precalculate pinv
@@ -10,7 +14,7 @@ Ab = full([A,b]);
 pA = pinv(Ab);
 
 %% 
-movSizes = acqObj.correctedMovies.slice(nSlice).channel.size;
+movSizes = acqObj.correctedMovies.slice(nSlice).channel(nChannel).size;
 imSize = movSizes(1,1:2);
 ref = reshape(meanRef(acqObj),prod(imSize),1);
 AY = nan(size(pA,1),sum(movSizes(:,3)),'single');
@@ -19,7 +23,7 @@ for nMov = 1:size(movSizes,1)
     fprintf('Processing Movie %d of %d ... \n',nMov,size(movSizes,1)),
     frameOffset = sum(movSizes(1:nMov-1,3));
     frameInd = (1:movSizes(nMov,3))+frameOffset;
-    tmpMov = readCor(acqObj,nMov,'single',nSlice);
+    tmpMov = readCor(acqObj,nMov,'single',nSlice,nChannel);
     tmpMov = reshape(tmpMov,prod(imSize),[]);
     if sum(~isfinite(tmpMov(:)))
         replaceFrames = find(sum(~isfinite(tmpMov),1)>0);
