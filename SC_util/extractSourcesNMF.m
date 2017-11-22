@@ -111,7 +111,7 @@ fprintf(' done. \n');
 %% load subset of high temporal resolution data to get imaging noise
 minNoisePrctile = 5;
 nMovs = 15;
-movNums = round(linspace(2,length(acqObj.correctedMovies.slice.channel(1).fileName)-1,nMovs));
+movNums = round(linspace(2,length(acqObj.correctedMovies.slice(nSlice).channel(1).fileName)-1,nMovs));
 allSN = nan(512^2,nMovs);
 for nMov = 1:nMovs
     tempMov = single(readCor(acqObj,movNums(nMov)));
@@ -211,12 +211,13 @@ P.neuron_sn = cell(nSources,1);
 
 %% Baseline and normalize traces
 
-binSize = 500 / memMap.dsRatio;
+binSize = round(500 / memMap.dsRatio);
 basePrct = 2;
 
 for nAcq = 1:size(acqBlocks,1)
     thisBlock = acqBlocks(nAcq,:);
     acqInd = ceil(thisBlock(1)/ memMap.dsRatio):floor(thisBlock(2)/ memMap.dsRatio);
+    acqInd(acqInd>size(C,2)) = [];
     parfor nSource = 1:size(C,1)
         C(nSource,acqInd) = removeSourceBaseline(C(nSource,acqInd),binSize,basePrct);
     end
