@@ -9,11 +9,9 @@ baseEstimate = prctile(f, basePrct, 1);
 x = 1:nF;
 xBin = (binSize:binSize:length(baseEstimate)*binSize) - binSize/2;
 warnState = warning('off', 'stats:statrobustfit:IterationLimit');
-try
-    b = robustfit(xBin',baseEstimate', 'bisquare', 2);
-catch
-    keyboard,
-end
+
+b = robustfit(xBin',baseEstimate', 'bisquare', 2);
+
 warning(warnState);
 
 f = fOrig;
