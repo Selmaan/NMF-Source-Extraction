@@ -1,7 +1,7 @@
 %% Load Data
 load('Z:\HarveyLab\Tier1\Shih_Yi\Imaging\9\170810\Slice02_patchResults_v170311.mat','A')
 memMap = matfile('Z:\HarveyLab\Tier1\Shih_Yi\Imaging\9\170810\Slice2_MemMapReconstructed.mat');
-Y = memMap.Y(:,:,1:2:memMap.sizY(3));
+Y = memMap.Y(:,:,1:1000);
 
 %% Prepare GUI and Labels
 
