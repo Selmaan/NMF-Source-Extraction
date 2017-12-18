@@ -44,6 +44,12 @@ for i=1:length(syncFiles)
     stimExpt.syncFns{i} = fullfile(acqObj.defaultDir,syncFiles(i).name);
     stimExpt.resFns{i} = fullfile(acqObj.defaultDir,...
         sprintf('resFOV1_0000%d_00001.tif',i));
+    if ~exist(stimExpt.resFns{i},'file')
+        warning('Could Not Locate File for Block %d',i),
+        [linMovNames, linMovPath] = uigetfile([cd,'\*.tif'],...
+            'MultiSelect','off');
+        stimExpt.resFns{i} = fullfile(linMovPath,linMovNames);
+    end
 end
 
 for nBlock = 1:length(stimExpt.syncFns)
@@ -122,7 +128,10 @@ end
 
 %% Post process stimAvg images
 
-normStimIm = bsxfun(@rdivide,allStimIm,sqrt(meanRef(acqObj)));
+refImg = meanRef(acqObj);
+refThresh = prctile(refImg(refImg>0),5);
+refImg(refImg<refThresh) = refThresh;
+normStimIm = bsxfun(@rdivide,allStimIm,sqrt(refImg));
 
 [xIntrinsic,yIntrinsic] = worldToIntrinsic(resRA,roiCentroid(:,1),roiCentroid(:,2));
 winStimIm = zeros(size(normStimIm));
