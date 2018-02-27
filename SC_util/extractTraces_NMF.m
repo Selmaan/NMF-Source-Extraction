@@ -80,10 +80,18 @@ for nSlice = 1:nSlices
     thisA = A{nSlice};
     thisB = b{nSlice};
     thisF = f{nSlice};
+    if size(thisB,2)==3 && size(thisF,1)==3
+        % Use only 'tonic' components of baseline, ignoring phasic/neuropil
+        thisB = thisB(:,1:2);
+        thisF = thisF(1:2,:);
+    else
+        warning('Non-Standard Baseline Used'),
+    end
     sumA = full(sum(thisA));
     normA = bsxfun(@rdivide,thisA,sumA);
     baseF = normA'*thisB * median(thisF,2);
-    thisC = bsxfun(@times,C{nSlice},sumA');
+%     thisC = bsxfun(@times,C{nSlice},sumA');
+    thisC = bsxfun(@times,C{nSlice},full(diag(normA'*thisA)));
     
     % Interpolate Data btw Blank Frames
     if ~isempty(interpFrames)
