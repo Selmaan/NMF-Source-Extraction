@@ -90,8 +90,9 @@ for nSlice = 1:nSlices
     sumA = full(sum(thisA));
     normA = bsxfun(@rdivide,thisA,sumA);
     baseF = normA'*thisB * median(thisF,2);
+    thisC = bsxfun(@times,C{nSlice},full(sum(normA.*thisA))');
 %     thisC = bsxfun(@times,C{nSlice},sumA');
-    thisC = bsxfun(@times,C{nSlice},full(diag(normA'*thisA)));
+%     thisC = bsxfun(@times,C{nSlice},full(diag(normA'*thisA)));
     
     % Interpolate Data btw Blank Frames
     if ~isempty(interpFrames)
