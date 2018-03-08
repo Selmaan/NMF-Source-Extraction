@@ -235,10 +235,13 @@ P.sn = P.snDS;
     (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Enforce robustness with noise inflation
-noiseTolerance = 1.1;
-P.sn = P.snDS * noiseTolerance;
-[A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,data,memMap,nSlice);
+
+% MJLM: I don't do the more aggressive regularization because my data is
+% noisier and I want to be too restrictive in what gets included.
+% noiseTolerance = 1.1;
+% P.sn = P.snDS * noiseTolerance;
+% [A_reg,b,C,f,P,options] = updateCNMF_all...
+%     (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Clean up robust results
 
@@ -249,9 +252,9 @@ f = bsxfun(@rdivide,f,fNorm);
 scaleFactor = 1e3;
 f = f * scaleFactor;
 
-P.sn = P.snDS;
-[A,b,C,f,P,options] = updateCNMF_all...
-    (A,C,f,P,options,acqObj,data,memMap,nSlice);
+% P.sn = P.snDS;
+% [A,b,C,f,P,options] = updateCNMF_all...
+%     (A,C,f,P,options,acqObj,data,memMap,nSlice);
 
 %% Save Results
 
