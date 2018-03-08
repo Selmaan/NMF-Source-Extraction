@@ -128,6 +128,7 @@ for nSlice = 1:nSlices
     
     % Use inferred baseline and background to get dF/F, then scale trace,
     % denoised and spiking data
+    thisB(thisB<0) = 0; % MJLM: Keep this rectification. The deconv assumes non-negativity anyway.
     baseF(baseF<0) = 0;
     F_ = double(baseF) + thisB;
     thisDF = bsxfun(@rdivide,double(thisC),F_);
