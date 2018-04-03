@@ -111,7 +111,7 @@ for nSlice = 1:nSlices
     % Deconvolve all Signals
     thisDenoised = nan(size(thisC));
     thisDeconv = nan(size(thisC));
-    thisB = nan(size(thisC,1),1);
+    oasisBaseline = nan(size(thisC,1),1);
     thisG = nan(size(thisC,1),1);
     thisLam = nan(size(thisC,1),1);
     parfor_progress(size(thisC,1));
@@ -120,7 +120,7 @@ for nSlice = 1:nSlices
         [c, s, b, g, lam] = sc_constrained_oasisAR1(double(thisC(nSig,:)), gDecay);
         thisDenoised(nSig,:) = b+c;
         thisDeconv(nSig,:) = s;
-        thisB(nSig) = b;
+        oasisBaseline(nSig) = b;
         thisG(nSig) = g;
         thisLam(nSig) = lam;
     end
@@ -128,9 +128,18 @@ for nSlice = 1:nSlices
     
     % Use inferred baseline and background to get dF/F, then scale trace,
     % denoised and spiking data
-    thisB(thisB<0) = 0; 
+    oasisBaseline = max(oasisBaseline, 0); 
     baseF(baseF<0) = 0;
-    F_ = double(baseF) + thisB;
+    
+    % v180318:
+    % This is what Selmaan suggested:
+%     F_ = double(baseF) + oasisBaseline;
+    
+    % v180403:
+    % This is baselining without any contribution from the background
+    % component:
+    F_ = oasisBaseline;
+    
     thisDF = bsxfun(@rdivide,double(thisC),F_);
     thisDenoised = bsxfun(@rdivide,thisDenoised,F_);
     thisDeconv = bsxfun(@rdivide,thisDeconv,F_);
