@@ -258,7 +258,7 @@ f = f * scaleFactor;
 
 %% Save Results
 
-saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v170311.mat',nSlice));
+saveFile = fullfile(acqObj.defaultDir,sprintf('Slice%0.2d_patchResults_v180318.mat',nSlice));
 acqObj.roiInfo.slice(nSlice).NMF.filename = saveFile;
 save(saveFile,'A','b','C','f','P','options','optionsThresh'),
 

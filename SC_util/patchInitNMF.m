@@ -18,6 +18,12 @@ end
 Y = reshape(Y,size(Y,1)*size(Y,2),size(Y,3));
 Y(~isfinite(Y)) = nanmean(Y(:));
 
+isZero = Y == 0;
+if all(isZero(:))
+    warning('Y is all zero for patch %d. Replacing with noise to make code work.', patchNum)
+    Y = rand(size(Y)) * 1e-8
+end
+
 %% Extract Factors and eliminate redundandant sources
 if isempty(initImages)
     [w,t] = NMF_SNC_Factors(Y,nFactors,initImages);

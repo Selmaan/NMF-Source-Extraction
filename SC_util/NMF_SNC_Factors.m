@@ -1,14 +1,17 @@
 function [w,t,nFactorsInit] = NMF_SNC_Factors(Yvec,nFactorsInit,initImages)
 
+epsilon = 1e-10; % To avoid division by zero.
+
 %% get corrmat
 corrMat =corrcoef(Yvec');
+corrMat(isnan(corrMat)) = 0; % If two traces have exactly the same values, their corrcoef is nan.
 invC = 1-corrMat;
 pilC = median(invC(~isnan(invC(:))));
-corrMat = exp(-1/(1*pilC^2) * invC.^2);
+corrMat = exp(-1/(1*pilC^2 + epsilon) * invC.^2);
 
 %% Initialize Factors
 
-iD = sqrt(diag(1./sum(corrMat)));
+iD = sqrt(diag(1./(sum(corrMat) + epsilon)));
 A = iD*corrMat*iD;
 w = rand(size(corrMat,1),nFactorsInit+1)/10;
 wSym = pinv(w)*A;

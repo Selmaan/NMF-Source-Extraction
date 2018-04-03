@@ -62,6 +62,6 @@ end
 
 %% Save Traces (and AY)
 saveDir = acqObj.defaultDir;
-fName = sprintf('Slice%0.2d_fullResTraces_v170311',nSlice);
+fName = sprintf('Slice%0.2d_fullResTraces_v180318',nSlice);
 save(fullfile(saveDir,fName),'Cf','AY'),
 acqObj.roiInfo.slice(nSlice).NMF.traceFn = fullfile(saveDir,fName);

@@ -77,9 +77,9 @@ Lams = cell(nSlices,1);
 
 for nSlice = 1:nSlices
     % get F_baseline from background component
-    thisA = A{nSlice};
-    thisB = b{nSlice};
-    thisF = f{nSlice};
+    thisA = A{nSlice}; % Source spatial components
+    thisB = b{nSlice}; % Background spatial components
+    thisF = f{nSlice}; % Background temporal components
     if size(thisB,2)==3 && size(thisF,1)==3
         % Use only 'tonic' components of baseline, ignoring phasic/neuropil
         thisB = thisB(:,1:2);
@@ -91,7 +91,7 @@ for nSlice = 1:nSlices
     normA = bsxfun(@rdivide,thisA,sumA);
     baseF = normA'*thisB * median(thisF,2);
 %     thisC = bsxfun(@times,C{nSlice},sumA');
-    thisC = bsxfun(@times,C{nSlice},full(diag(normA'*thisA)));
+    thisC = bsxfun(@times,C{nSlice},full(diag(normA'*thisA))); % C = Source temporal components
     
     % Interpolate Data btw Blank Frames
     if ~isempty(interpFrames)
@@ -128,7 +128,7 @@ for nSlice = 1:nSlices
     
     % Use inferred baseline and background to get dF/F, then scale trace,
     % denoised and spiking data
-    thisB(thisB<0) = 0; % MJLM: Keep this rectification. The deconv assumes non-negativity anyway.
+    thisB(thisB<0) = 0; 
     baseF(baseF<0) = 0;
     F_ = double(baseF) + thisB;
     thisDF = bsxfun(@rdivide,double(thisC),F_);
