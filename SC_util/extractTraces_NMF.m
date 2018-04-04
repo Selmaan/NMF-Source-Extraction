@@ -128,7 +128,7 @@ for nSlice = 1:nSlices
     
     % Use inferred baseline and background to get dF/F, then scale trace,
     % denoised and spiking data
-    oasisBaseline = max(oasisBaseline, 0); 
+    oasisBaseline(oasisBaseline<0) = 0;
     baseF(baseF<0) = 0;
     
     % v180318:
