@@ -1,4 +1,4 @@
-function [dF,deconv,denoised,Gs,Lams,A,b,f] = extractTraces_NMF(acqObj,cellLabels,interpFrames)
+function [dF,deconv,denoised,Gs,Lams,A,b,f,baselines] = extractTraces_NMF(acqObj,cellLabels,interpFrames)
 
 if nargin < 2 || isempty(cellLabels)
     cellLabels = cell(length(acqObj.roiInfo.slice),1);
@@ -128,8 +128,10 @@ for nSlice = 1:nSlices
     
     % Use inferred baseline and background to get dF/F, then scale trace,
     % denoised and spiking data
-    oasisBaseline(oasisBaseline<0) = 0;
-    baseF(baseF<0) = 0;
+    % Don't rectify here -- do that outside in case we want to inspect the
+    % number of negative elements.
+%     oasisBaseline(oasisBaseline<0) = 0;
+%     baseF(baseF<0) = 0;
     
     % v180318:
     % This is what Selmaan suggested:
@@ -138,11 +140,17 @@ for nSlice = 1:nSlices
     % v180403:
     % This is baselining without any contribution from the background
     % component:
-    F_ = oasisBaseline;
-    
-    thisDF = bsxfun(@rdivide,double(thisC),F_);
-    thisDenoised = bsxfun(@rdivide,thisDenoised,F_);
-    thisDeconv = bsxfun(@rdivide,thisDeconv,F_);
+%     F_ = oasisBaseline;
+
+    % We output the un-scaled traces and instead also provide a struct with
+    % different baselines:
+%     thisDF = bsxfun(@rdivide,double(thisC),F_);
+%     thisDenoised = bsxfun(@rdivide,thisDenoised,F_);
+%     thisDeconv = bsxfun(@rdivide,thisDeconv,F_);
+    thisDF = double(thisC);
+    baselines = struct();
+    baselines.oasis = oasisBaseline;
+    baselines.background = double(baseF);
     
     % Store data for each slice
     dF{nSlice} = thisDF;
