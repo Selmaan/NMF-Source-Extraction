@@ -1,4 +1,4 @@
-function [dF,deconv,denoised,Gs,Lams,A,b,f] = extractTraces_NMF(acqObj,cellLabels,interpFrames)
+function [dF,deconv,denoised,Gs,Lams,A,b,f, C_raw] = extractTraces_NMF(acqObj,cellLabels,interpFrames)
 
 if nargin < 2 || isempty(cellLabels)
     cellLabels = cell(length(acqObj.roiInfo.slice),1);
@@ -32,12 +32,13 @@ nBlocks = size(acqObj.syncInfo.sliceFrames,1);
 A = cell(1,nSlices);
 b = cell(1,nSlices);
 C = cell(nSlices,1);
+C_raw = cell(nSlices,1);
 f = cell(nSlices,1);
 
 % Load NMF sources and concatenate data
 for nSlice = 1:nSlices
     D = load(acqObj.roiInfo.slice(nSlice).NMF.filename);
-    load(acqObj.roiInfo.slice(nSlice).NMF.traceFn,'Cf');
+    load(acqObj.roiInfo.slice(nSlice).NMF.traceFn);
     A{nSlice} = D.A;
     b{nSlice} = D.b;
     nSources = size(A{nSlice},2);
@@ -49,6 +50,7 @@ for nSlice = 1:nSlices
         validSources = 1:nSources;
     end
     thisC = cell(1,nBlocks);
+    thisC_raw = cell(1,nBlocks);
     thisF = cell(1,nBlocks);
     for nBlock = 1:nBlocks
         % Clip 'extra' frames from slices without complete volume
@@ -59,15 +61,17 @@ for nSlice = 1:nSlices
         end
         blockLength = acqObj.syncInfo.validFrameCount(nBlock) * frame2slice;
         thisC{nBlock} = Cf(validSources,offsetInd+1:offsetInd+blockLength);
+        thisC_raw{nBlock} = AY(validSources,offsetInd+1:offsetInd+blockLength);
         thisF{nBlock} =  Cf(nSources+1:nSources+nBkgd,offsetInd+1:offsetInd+blockLength);
 %         C{nSlice,nBlock} = Cf(1:nSources,offsetInd+1:offsetInd+blockLength);
 %         f{nSlice,nBlock} = Cf(nSources+1:nSources+nBkgd,offsetInd+1:offsetInd+blockLength);
     end
     C{nSlice} = cell2mat(thisC);
+    C_raw{nSlice} = cell2mat(thisC_raw);
     f{nSlice} = cell2mat(thisF);
 end
 
-clear Cf D
+clear AY Cf D
 %% Get Traces
 dF = cell(nSlices,1);
 deconv = cell(nSlices,1);
